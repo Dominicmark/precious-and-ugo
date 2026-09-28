@@ -9,12 +9,12 @@ interface EnvelopeProps {
 const LOOPING_VIDEO_URL =
   'https://res.cloudinary.com/dbbw8jsjc/video/upload/v1790561471/Wedding_invitation_envelope_disp__1080p_20260928022401_hwjrhy.mp4';
 const LOOPING_POSTER_URL =
-  'https://res.cloudinary.com/dbbw8jsjc/video/upload/v1790561471/Wedding_invitation_envelope_disp__1080p_20260928022401_hwjrhy.jpg';
+  'https://res.cloudinary.com/dbbw8jsjc/video/upload/f_auto,q_auto:good,w_1200/v1790561471/Wedding_invitation_envelope_disp__1080p_20260928022401_hwjrhy.jpg';
 
 const OPENING_VIDEO_URL =
   'https://res.cloudinary.com/dbbw8jsjc/video/upload/v1790562046/Envelope_vanishes_in_golden_flash_20260928030448_re8cbd.mp4';
 const OPENING_POSTER_URL =
-  'https://res.cloudinary.com/dbbw8jsjc/video/upload/v1790562046/Envelope_vanishes_in_golden_flash_20260928030448_re8cbd.jpg';
+  'https://res.cloudinary.com/dbbw8jsjc/video/upload/f_auto,q_auto:good,w_1200/v1790562046/Envelope_vanishes_in_golden_flash_20260928030448_re8cbd.jpg';
 
 export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
   const [stage, setStage] = useState<'idle' | 'opening' | 'flashing'>('idle');

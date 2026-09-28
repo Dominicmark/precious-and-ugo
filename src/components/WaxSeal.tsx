@@ -8,7 +8,7 @@ interface WaxSealProps {
 }
 
 export const LUXURY_SEAL_URL =
-  'https://res.cloudinary.com/dbbw8jsjc/image/upload/c_crop,w_520,h_520,x_633,y_961/v1790565701/Luxury_wedding_invitation_envelope_2K_20260928021559_o25ezt.png';
+  'https://res.cloudinary.com/dbbw8jsjc/image/upload/c_crop,w_520,h_520,x_633,y_961/f_auto,q_auto/v1790565701/Luxury_wedding_invitation_envelope_2K_20260928021559_o25ezt.png';
 const LOCAL_SEAL_URL = '/images/luxury_seal.png';
 
 export const WaxSeal: React.FC<WaxSealProps> = ({

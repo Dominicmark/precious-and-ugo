@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, useScroll, useTransform, useSpring, useReducedMotion } from 'motion/react';
 import { WaxSeal } from './WaxSeal';
 import { ScratchReveal } from './ScratchReveal';
 import { Countdown } from './Countdown';
@@ -13,6 +13,7 @@ import { GiftRegistryModal } from './GiftRegistryModal';
 import { AudioPlayerToggle } from './AudioPlayerToggle';
 import { CoupleGallery } from './CoupleGallery';
 import { GuestWishesWall } from './GuestWishesWall';
+import { ScrollReveal } from './ScrollReveal';
 import { MailOpen, BookOpen, Heart, Shield, Sparkles, Gift, MessageSquareHeart } from 'lucide-react';
 
 interface InvitationCardProps {
@@ -27,6 +28,11 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
   const [showProgramme, setShowProgramme] = useState(false);
   const [showLoveStory, setShowLoveStory] = useState(false);
   const [showGiftModal, setShowGiftModal] = useState(false);
+
+  const shouldReduceMotion = useReducedMotion();
+  const { scrollY } = useScroll();
+  const smoothScrollY = useSpring(scrollY, { stiffness: 90, damping: 25 });
+  const sealParallaxY = useTransform(smoothScrollY, [0, 500], [0, -18]);
 
   const scrollToRSVP = () => {
     const el = document.getElementById('rsvp-section');
@@ -104,9 +110,9 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
 
       {/* MAIN INVITATION CARD (Luxury Physical Stationery Appearance) */}
       <motion.article
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0, y: 24, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
         className="relative rounded-2xl sm:rounded-3xl bg-[#FAF7F2]/95 backdrop-blur-md paper-texture p-6 sm:p-10 border-2 border-[#D6B477] shadow-[0_25px_70px_-15px_rgba(14,27,46,0.22)] text-center overflow-hidden"
       >
         {/* Double Gold Foil Decorative Inner Border */}
@@ -120,131 +126,154 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
         <div className="absolute bottom-4 right-4 text-[#D6B477] text-xs pointer-events-none">❖</div>
 
         {/* SECTION 4: HEADER & COUPLE NAMES */}
-        <div className="pt-2 sm:pt-4 mb-8">
-          <div className="flex justify-center mb-4">
-            <WaxSeal size={96} interactive={true} onClick={onReopenEnvelope} />
-          </div>
+        <ScrollReveal direction="up" distance={20} duration={0.8} threshold={0.1}>
+          <div className="pt-2 sm:pt-4 mb-8">
+            <motion.div
+              style={{ y: shouldReduceMotion ? 0 : sealParallaxY }}
+              className="flex justify-center mb-4 will-change-transform"
+            >
+              <WaxSeal size={96} interactive={true} onClick={onReopenEnvelope} />
+            </motion.div>
 
-          <p className="font-serif-luxury text-xs sm:text-sm tracking-[0.3em] text-[#5687AD] uppercase font-bold">
-            THE WEDDING RECEPTION OF
-          </p>
+            <p className="font-serif-luxury text-xs sm:text-sm tracking-[0.3em] text-[#5687AD] uppercase font-bold">
+              THE WEDDING RECEPTION OF
+            </p>
 
-          {/* Couple Names */}
-          <div className="my-3 space-y-1">
-            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#0E1B2E] tracking-wider leading-tight">
-              PRECIOUS UZOAMAKA MARK
-            </h1>
+            {/* Couple Names */}
+            <div className="my-3 space-y-1">
+              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#0E1B2E] tracking-wider leading-tight">
+                PRECIOUS UZOAMAKA MARK
+              </h1>
 
-            <div className="flex items-center justify-center gap-3 my-1">
-              <span className="w-12 h-[1px] bg-gradient-to-r from-transparent to-[#D6B477]" />
-              <span className="font-script text-3xl sm:text-4xl text-[#8FB5D1] leading-none">
-                &amp;
-              </span>
-              <span className="w-12 h-[1px] bg-gradient-to-l from-transparent to-[#D6B477]" />
+              <div className="flex items-center justify-center gap-3 my-1">
+                <span className="w-12 h-[1px] bg-gradient-to-r from-transparent to-[#D6B477]" />
+                <span className="font-script text-3xl sm:text-4xl text-[#8FB5D1] leading-none">
+                  &amp;
+                </span>
+                <span className="w-12 h-[1px] bg-gradient-to-l from-transparent to-[#D6B477]" />
+              </div>
+
+              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#0E1B2E] tracking-wider leading-tight">
+                UGOCHUKWU CYRIL OMEOGU
+              </h1>
             </div>
 
-            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#0E1B2E] tracking-wider leading-tight">
-              UGOCHUKWU CYRIL OMEOGU
-            </h1>
-          </div>
+            {/* Hashtag */}
+            <div className="inline-block mt-1">
+              <span className="font-display text-xs sm:text-sm tracking-[0.3em] font-bold text-[#D6B477] bg-[#0E1B2E] px-4 py-1 rounded-full shadow-xs">
+                #UgoAmaka26
+              </span>
+            </div>
 
-          {/* Hashtag */}
-          <div className="inline-block mt-1">
-            <span className="font-display text-xs sm:text-sm tracking-[0.3em] font-bold text-[#D6B477] bg-[#0E1B2E] px-4 py-1 rounded-full shadow-xs">
-              #UgoAmaka26
-            </span>
+            <p className="font-serif-luxury text-xs sm:text-sm text-[#0E1B2E]/75 italic mt-3 max-w-sm mx-auto leading-relaxed">
+              Together with their families, cordially invite you to celebrate their union in holy matrimony and joyous reception banquet.
+            </p>
           </div>
-
-          <p className="font-serif-luxury text-xs sm:text-sm text-[#0E1B2E]/75 italic mt-3 max-w-sm mx-auto leading-relaxed">
-            Together with their families, cordially invite you to celebrate their union in holy matrimony and joyous reception banquet.
-          </p>
-        </div>
+        </ScrollReveal>
 
         {/* SECTION 5: SIGNATURE SCRATCH-TO-REVEAL INTERACTION */}
-        <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-          <ScratchReveal />
-        </div>
+        <ScrollReveal direction="up" distance={30} delay={0.05} threshold={0.12}>
+          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
+            <ScratchReveal />
+          </div>
+        </ScrollReveal>
 
         {/* SECTION 7: DYNAMIC COUNTDOWN */}
-        <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-          <Countdown />
-        </div>
+        <ScrollReveal direction="up" distance={30} delay={0.05} threshold={0.12}>
+          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
+            <Countdown />
+          </div>
+        </ScrollReveal>
 
         {/* COUPLE EDITORIAL SHOWCASE GALLERY */}
-        <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-          <CoupleGallery />
-        </div>
+        <ScrollReveal direction="up" distance={35} delay={0.05} threshold={0.12}>
+          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
+            <CoupleGallery />
+          </div>
+        </ScrollReveal>
 
         {/* SECTION 6: EVENT DETAILS & DIRECTIONS */}
-        <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-          <EventDetails />
-        </div>
+        <ScrollReveal direction="up" distance={35} delay={0.05} threshold={0.12}>
+          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
+            <EventDetails />
+          </div>
+        </ScrollReveal>
 
         {/* SECTION 8: DRESS CODE */}
-        <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-          <DressCode />
-        </div>
+        <ScrollReveal direction="up" distance={30} delay={0.05} threshold={0.12}>
+          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
+            <DressCode />
+          </div>
+        </ScrollReveal>
 
         {/* INTERACTIVE GUEST WISHES WALL */}
-        <div id="wishes-section" className="my-8 pt-6 border-t border-[#D6B477]/40">
-          <GuestWishesWall />
-        </div>
+        <ScrollReveal direction="up" distance={35} delay={0.05} threshold={0.12}>
+          <div id="wishes-section" className="my-8 pt-6 border-t border-[#D6B477]/40">
+            <GuestWishesWall />
+          </div>
+        </ScrollReveal>
 
         {/* SECTION 9: RSVP EXPERIENCE */}
-        <div id="rsvp-section" className="my-8 pt-6 border-t border-[#D6B477]/40">
-          <RSVPForm />
-        </div>
+        <ScrollReveal direction="up" distance={40} delay={0.05} threshold={0.12}>
+          <div id="rsvp-section" className="my-8 pt-6 border-t border-[#D6B477]/40">
+            <RSVPForm />
+          </div>
+        </ScrollReveal>
 
         {/* SECTION 12: CONTACT ACTIONS */}
-        <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-          <ContactButtons />
-        </div>
+        <ScrollReveal direction="up" distance={25} delay={0.05} threshold={0.12}>
+          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
+            <ContactButtons />
+          </div>
+        </ScrollReveal>
 
         {/* FOOTER & RE-OPEN CTA */}
-        <footer className="mt-8 pt-6 border-t border-[#D6B477]/40 text-center space-y-3">
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
-            <button
-              onClick={onReopenEnvelope}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] bg-white border border-[#D6B477]/60 shadow-2xs hover:border-[#8FB5D1] transition-all cursor-pointer"
-            >
-              <MailOpen className="w-3.5 h-3.5 text-[#5687AD]" />
-              <span>Replay Envelope</span>
-            </button>
+        <ScrollReveal direction="up" distance={20} delay={0.05} threshold={0.1}>
+          <footer className="mt-8 pt-6 border-t border-[#D6B477]/40 text-center space-y-3">
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              <button
+                onClick={onReopenEnvelope}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] bg-white border border-[#D6B477]/60 shadow-2xs hover:border-[#8FB5D1] transition-all cursor-pointer"
+              >
+                <MailOpen className="w-3.5 h-3.5 text-[#5687AD]" />
+                <span>Replay Envelope</span>
+              </button>
 
-            <button
-              onClick={() => setShowProgramme(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] bg-white border border-[#D6B477]/60 shadow-2xs hover:border-[#8FB5D1] transition-all cursor-pointer"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-[#D6B477]" />
-              <span>Programme</span>
-            </button>
+              <button
+                onClick={() => setShowProgramme(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] bg-white border border-[#D6B477]/60 shadow-2xs hover:border-[#8FB5D1] transition-all cursor-pointer"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-[#D6B477]" />
+                <span>Programme</span>
+              </button>
 
-            <button
-              onClick={() => setShowGiftModal(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] bg-white border border-[#D6B477]/60 shadow-2xs hover:border-[#8FB5D1] transition-all cursor-pointer"
-            >
-              <Gift className="w-3.5 h-3.5 text-[#8FB5D1]" />
-              <span>Registry</span>
-            </button>
-          </div>
+              <button
+                onClick={() => setShowGiftModal(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] bg-white border border-[#D6B477]/60 shadow-2xs hover:border-[#8FB5D1] transition-all cursor-pointer"
+              >
+                <Gift className="w-3.5 h-3.5 text-[#8FB5D1]" />
+                <span>Registry</span>
+              </button>
+            </div>
 
-          <div className="text-[11px] text-[#0E1B2E]/60 font-serif-luxury space-y-0.5">
-            <p>Precious Uzoamaka Mark &amp; Ugochukwu Cyril Omeogu</p>
-            <p>Abuja, Nigeria · #UgoAmaka26</p>
-          </div>
+            <div className="text-[11px] text-[#0E1B2E]/60 font-serif-luxury space-y-0.5">
+              <p>Precious Uzoamaka Mark &amp; Ugochukwu Cyril Omeogu</p>
+              <p>Abuja, Nigeria · #UgoAmaka26</p>
+            </div>
 
-          {/* Discreet Admin Portal Link */}
-          <div className="pt-2">
-            <button
-              onClick={onOpenAdmin}
-              type="button"
-              className="inline-flex items-center gap-1 text-[10px] tracking-wider uppercase text-[#0E1B2E]/50 hover:text-[#5687AD] transition-colors cursor-pointer"
-            >
-              <Shield className="w-3 h-3 text-[#D6B477]" />
-              <span>Admin Access</span>
-            </button>
-          </div>
-        </footer>
+            {/* Discreet Admin Portal Link */}
+            <div className="pt-2">
+              <button
+                onClick={onOpenAdmin}
+                type="button"
+                className="inline-flex items-center gap-1 text-[10px] tracking-wider uppercase text-[#0E1B2E]/50 hover:text-[#5687AD] transition-colors cursor-pointer"
+              >
+                <Shield className="w-3 h-3 text-[#D6B477]" />
+                <span>Admin Access</span>
+              </button>
+            </div>
+          </footer>
+        </ScrollReveal>
       </motion.article>
 
       {/* Sticky Bottom Thumb Action Bar on Mobile */}
@@ -276,5 +305,3 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
     </div>
   );
 };
-
-
