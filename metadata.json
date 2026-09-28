@@ -1,0 +1,7 @@
+{
+  "name": "Ugo & Amaka Wedding Invitation",
+  "description": "Exclusive interactive wedding invitation for Precious Uzoamaka Mark & Ugochukwu Cyril Omeogu (#UgoAmaka26) with digital envelope opening, gold foil scratch-to-reveal, live countdown, and RSVP management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
