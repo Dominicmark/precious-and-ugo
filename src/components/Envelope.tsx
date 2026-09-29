@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   playTactileClickSound,
   playGlitterSparkleSound,
-  playEnvelopeOpenSound,
-  playWaxBreakSound,
   toggleBackgroundMusic,
   primeAudio,
 } from '../lib/audio';
@@ -42,6 +40,12 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
   const finishOpening = () => {
     if (hasTriggeredCompleteRef.current) return;
     hasTriggeredCompleteRef.current = true;
+    if (openingVideoRef.current) {
+      openingVideoRef.current.pause();
+    }
+    if (loopVideoRef.current) {
+      loopVideoRef.current.pause();
+    }
     onOpenComplete();
   };
 
@@ -53,26 +57,11 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
     primeAudio();
     playTactileClickSound();
 
-    // 2. Play magical glitter / sparkling sound as envelope begins opening
-    setTimeout(() => {
-      playGlitterSparkleSound();
-    }, 150);
-
-    // 3. Subtle tactile paper slide / wax break sound
-    setTimeout(() => {
-      playWaxBreakSound();
-      playEnvelopeOpenSound();
-    }, 240);
-
-    // 4. Then start music playing right after sparkling chimes
-    setTimeout(() => {
-      toggleBackgroundMusic(true);
-    }, 1100);
-
-    // Play the opening envelope video
+    // 2. Play the opening envelope video with its AUDIO TURNED ON (unmuted)
     if (openingVideoRef.current) {
       openingVideoRef.current.currentTime = 0;
-      openingVideoRef.current.muted = true; // Ensure mobile browsers allow instant play without block
+      openingVideoRef.current.muted = false;
+      openingVideoRef.current.volume = 1.0;
       const playPromise = openingVideoRef.current.play();
 
       if (playPromise !== undefined) {
@@ -81,10 +70,25 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
             setIsOpeningVideoReady(true);
           })
           .catch(() => {
+            // Fallback: If browser audio policy restricts unmuted play, retry with muted
+            if (openingVideoRef.current) {
+              openingVideoRef.current.muted = true;
+              openingVideoRef.current.play().catch(() => {});
+            }
             setIsOpeningVideoReady(true);
           });
       }
     }
+
+    // 3. Play magical glitter / sparkling sound as envelope begins opening
+    setTimeout(() => {
+      playGlitterSparkleSound();
+    }, 150);
+
+    // 4. Then start background wedding music right after sparkling chimes
+    setTimeout(() => {
+      toggleBackgroundMusic(true);
+    }, 1100);
 
     // Allow the envelope opening animation & letter reveal to play naturally
     // Golden illumination blooms at 3.8s, smoothly transitioning to the invitation card
@@ -157,12 +161,11 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
         }`}
       />
 
-      {/* 2. Opening Envelope Video: Seamlessly crossfades on top as the letter comes out */}
+      {/* 2. Opening Envelope Video: Audio turned ON on touch/tap */}
       <video
         ref={openingVideoRef}
         src={OPENING_VIDEO_URL}
         poster={OPENING_POSTER_URL}
-        muted
         playsInline
         preload="auto"
         onTimeUpdate={handleOpeningTimeUpdate}

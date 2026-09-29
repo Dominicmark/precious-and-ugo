@@ -48,7 +48,7 @@ export const HeroCinematicVideo: React.FC<HeroCinematicVideoProps> = () => {
       {/* 3. Bottom Smooth Fade-Out directly to the Vintage Parchment Background (#FAF5EA) */}
       <div className="absolute inset-x-0 bottom-0 h-44 sm:h-56 bg-gradient-to-t from-[#FAF5EA] via-[#FAF5EA]/85 to-transparent pointer-events-none" />
 
-      {/* 4. Top Sky Area: Couple Names with 30% Reduced Shadows for Clean Elegance */}
+      {/* 4. Top Sky Area: Couple Names with Soft, Subtle Shadow (Reduced by 40%) */}
       <div className="relative z-10 w-full pt-16 sm:pt-20 px-4 flex flex-col items-center text-center">
         <div className="space-y-1 sm:space-y-2 max-w-lg mx-auto">
           {/* Couple Names in Bolder Wedding Calligraphy (Soft Fade In) */}
@@ -59,30 +59,30 @@ export const HeroCinematicVideo: React.FC<HeroCinematicVideoProps> = () => {
             className="space-y-0.5"
           >
             <h1
-              className="font-script-romantic-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wide leading-tight drop-shadow-md"
+              className="font-script-romantic-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wide leading-tight"
               style={{
                 textShadow:
-                  '0 2px 10px rgba(0,0,0,0.60), 0 3px 19px rgba(0,0,0,0.49), 0 0 11px rgba(214,180,119,0.24)',
+                  '0 1px 6px rgba(0,0,0,0.36), 0 2px 11px rgba(0,0,0,0.29), 0 0 7px rgba(214,180,119,0.14)',
               }}
             >
               Precious Uzoamaka
             </h1>
 
             <div
-              className="font-script-romantic-bold text-3xl sm:text-4xl md:text-5xl text-[#ECC880] leading-none py-0.5 sm:py-1 drop-shadow-sm"
+              className="font-script-romantic-bold text-3xl sm:text-4xl md:text-5xl text-[#ECC880] leading-none py-0.5 sm:py-1"
               style={{
                 textShadow:
-                  '0 2px 7px rgba(0,0,0,0.56), 0 0 10px rgba(214,180,119,0.35)',
+                  '0 1px 4px rgba(0,0,0,0.34), 0 0 6px rgba(214,180,119,0.21)',
               }}
             >
               &amp;
             </div>
 
             <h1
-              className="font-script-romantic-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wide leading-tight drop-shadow-md"
+              className="font-script-romantic-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wide leading-tight"
               style={{
                 textShadow:
-                  '0 2px 10px rgba(0,0,0,0.60), 0 3px 19px rgba(0,0,0,0.49), 0 0 11px rgba(214,180,119,0.24)',
+                  '0 1px 6px rgba(0,0,0,0.36), 0 2px 11px rgba(0,0,0,0.29), 0 0 7px rgba(214,180,119,0.14)',
               }}
             >
               Ugochukwu Omeogu
