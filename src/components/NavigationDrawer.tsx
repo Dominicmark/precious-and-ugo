@@ -1,6 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Heart, Gift, MailOpen, Calendar, HelpCircle, Send, MessageCircle, Shield, Camera, Sparkles } from 'lucide-react';
+import {
+  X,
+  Heart,
+  Gift,
+  MailOpen,
+  HelpCircle,
+  Send,
+  MessageCircle,
+  Shield,
+  Camera,
+  Sparkles,
+  Music,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
+import { toggleBackgroundMusic, isBgMusicPlaying, primeAudio } from '../lib/audio';
 
 interface NavigationDrawerProps {
   isOpen: boolean;
@@ -19,6 +34,27 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   onReopenEnvelope,
   onOpenAdmin,
 }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    setIsPlaying(isBgMusicPlaying());
+
+    const handleStateChange = (e: Event) => {
+      const customEvt = e as CustomEvent<{ isPlaying: boolean }>;
+      const playing = customEvt.detail?.isPlaying ?? isBgMusicPlaying();
+      setIsPlaying(playing);
+    };
+
+    window.addEventListener('wedding-music-state-change', handleStateChange);
+    return () => window.removeEventListener('wedding-music-state-change', handleStateChange);
+  }, [isOpen]);
+
+  const handleToggleMusic = () => {
+    primeAudio();
+    const newState = toggleBackgroundMusic();
+    setIsPlaying(newState);
+  };
+
   const scrollTo = (id: string) => {
     onClose();
     setTimeout(() => {
@@ -47,16 +83,16 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed top-0 right-0 bottom-0 z-50 w-full max-w-xs bg-[#FAF5EA] border-l border-[#D6B477]/50 shadow-2xl flex flex-col justify-between p-6 overflow-y-auto"
           >
-            {/* Header */}
             <div>
-              <div className="flex items-center justify-between pb-4 border-b border-[#D6B477]/40">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-[#D6B477]/30">
                 <div>
-                  <span className="font-script text-2xl text-[#0E1B2E] block">
+                  <h3 className="font-display text-base font-bold text-[#0E1B2E] tracking-wider uppercase">
                     Precious &amp; Ugochukwu
-                  </span>
+                  </h3>
                   <span className="font-display text-[10px] tracking-[0.25em] text-[#D6B477] font-bold uppercase">
                     #UgoAmaka26
                   </span>
@@ -70,8 +106,34 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                 </button>
               </div>
 
+              {/* Soundtrack Controller Inside Drawer */}
+              <div className="mt-4 p-3 rounded-2xl bg-white/90 border border-[#D6B477]/60 shadow-xs">
+                <button
+                  onClick={handleToggleMusic}
+                  type="button"
+                  className="w-full flex items-center justify-between cursor-pointer select-none text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-[#0E1B2E] flex items-center justify-center text-[#D6B477] shadow-inner">
+                      <Music className={`w-4 h-4 ${isPlaying ? 'animate-pulse text-[#ECC880]' : ''}`} />
+                    </div>
+                    <div>
+                      <div className="font-serif-luxury text-xs font-bold text-[#0E1B2E]">
+                        Rewrite The Stars
+                      </div>
+                      <div className="text-[10px] font-sans text-[#5687AD] font-semibold">
+                        {isPlaying ? 'Soundtrack Playing' : 'Music Paused'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`p-1.5 rounded-full border transition-colors ${isPlaying ? 'bg-[#0E1B2E] border-[#D6B477] text-[#D6B477]' : 'bg-gray-100 border-gray-300 text-gray-500'}`}>
+                    {isPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                  </div>
+                </button>
+              </div>
+
               {/* Navigation Items */}
-              <nav className="mt-6 space-y-1.5">
+              <nav className="mt-5 space-y-1.5">
                 <button
                   onClick={() => {
                     onClose();
@@ -116,14 +178,6 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                 </button>
 
                 <button
-                  onClick={() => scrollTo('timeline-section')}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left font-serif-luxury text-sm text-[#0E1B2E] hover:bg-white/80 transition-colors cursor-pointer"
-                >
-                  <Calendar className="w-4 h-4 text-[#5687AD]" />
-                  <span>Order of Events</span>
-                </button>
-
-                <button
                   onClick={() => scrollTo('couple-section')}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left font-serif-luxury text-sm text-[#0E1B2E] hover:bg-white/80 transition-colors cursor-pointer"
                 >
@@ -135,7 +189,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                   onClick={() => scrollTo('attire-section')}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left font-serif-luxury text-sm text-[#0E1B2E] hover:bg-white/80 transition-colors cursor-pointer"
                 >
-                  <Sparkles className="w-4 h-4 text-[#C25E2E]" />
+                  <Sparkles className="w-4 h-4 text-[#5687AD]" />
                   <span>Dress Code &amp; Palette</span>
                 </button>
 
@@ -159,29 +213,30 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                   onClick={() => scrollTo('contact-section')}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left font-serif-luxury text-sm text-[#0E1B2E] hover:bg-white/80 transition-colors cursor-pointer"
                 >
-                  <MessageCircle className="w-4 h-4 text-emerald-600" />
+                  <MessageCircle className="w-4 h-4 text-[#5687AD]" />
                   <span>WhatsApp Concierge</span>
                 </button>
               </nav>
             </div>
 
-            {/* Footer */}
-            <div className="pt-6 border-t border-[#D6B477]/40 text-center space-y-2">
-              <span className="font-cursive text-2xl text-[#0E1B2E]">
-                Mentored by Love
+            {/* Footer with Monogram & Admin */}
+            <div className="pt-6 border-t border-[#D6B477]/30 text-center space-y-2">
+              <span className="font-script text-2xl text-[#0E1B2E] block">
+                P &amp; U
               </span>
-              <p className="font-display text-[9px] tracking-[0.25em] text-[#5687AD] uppercase">
-                13 November 2026 · 4:00 PM WAT
+              <p className="font-serif-luxury text-xs text-[#0E1B2E]/60 italic">
+                13th November 2026 · Abuja, Nigeria
               </p>
+
               <button
                 onClick={() => {
                   onClose();
                   onOpenAdmin();
                 }}
-                className="inline-flex items-center gap-1 text-[9px] text-[#0E1B2E]/40 hover:text-[#5687AD] transition-colors cursor-pointer mt-1"
+                className="inline-flex items-center gap-1.5 text-[10px] text-[#0E1B2E]/40 hover:text-[#0E1B2E] transition-colors cursor-pointer pt-2"
               >
-                <Shield className="w-2.5 h-2.5 text-[#D6B477]" />
-                <span>Admin Access</span>
+                <Shield className="w-3 h-3 text-[#D6B477]" />
+                <span>Admin Management</span>
               </button>
             </div>
           </motion.div>

@@ -30,7 +30,7 @@ const EVENTS: TimelineEvent[] = [
     time: '17:00',
     tag: 'THE ARRIVAL',
     title: 'Grand Entrance of the Couple',
-    desc: 'Welcoming Mr. & Mrs. Ugochukwu Cyril Omeogu with joyous cheers and fanfare!',
+    desc: 'Welcoming Mr. & Mrs. Ugochukwu Omeogu with joyous cheers and fanfare!',
     icon: Crown,
   },
   {

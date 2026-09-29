@@ -1,6 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { playEnvelopeOpenSound, playWaxBreakSound, toggleBackgroundMusic, primeAudio } from '../lib/audio';
+import {
+  playTactileClickSound,
+  playGlitterSparkleSound,
+  playEnvelopeOpenSound,
+  playWaxBreakSound,
+  toggleBackgroundMusic,
+  primeAudio,
+} from '../lib/audio';
+import { AudioPlayerToggle } from './AudioPlayerToggle';
 
 interface EnvelopeProps {
   onOpenComplete: () => void;
@@ -41,15 +49,25 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
     if (stage !== 'idle') return;
     setStage('opening');
 
-    // Unlock and start background music synchronously within direct user gesture
+    // 1. Prime audio and play crisp tactile click sound instantly when touched
     primeAudio();
-    toggleBackgroundMusic(true);
+    playTactileClickSound();
 
-    // Trigger authentic tactile sound effects
-    playWaxBreakSound();
+    // 2. Play magical glitter / sparkling sound as envelope begins opening
     setTimeout(() => {
+      playGlitterSparkleSound();
+    }, 150);
+
+    // 3. Subtle tactile paper slide / wax break sound
+    setTimeout(() => {
+      playWaxBreakSound();
       playEnvelopeOpenSound();
-    }, 120);
+    }, 240);
+
+    // 4. Then start music playing right after sparkling chimes
+    setTimeout(() => {
+      toggleBackgroundMusic(true);
+    }, 1100);
 
     // Play the opening envelope video
     if (openingVideoRef.current) {
@@ -60,11 +78,9 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            // Once playback confirmed started
             setIsOpeningVideoReady(true);
           })
           .catch(() => {
-            // Fallback if autoplay restricted
             setIsOpeningVideoReady(true);
           });
       }
@@ -118,6 +134,14 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
       className="fixed inset-0 w-full h-full cursor-pointer select-none overflow-hidden bg-black z-40"
       aria-label="Tap anywhere on the screen to open the wedding invitation"
     >
+      {/* Speaker Icon in Top Left */}
+      <div
+        className="fixed top-3 left-3 sm:left-6 z-50 pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <AudioPlayerToggle />
+      </div>
+
       {/* 1. Looping Envelope Video: Remains visible until Video 2 is actively rendering */}
       <video
         ref={loopVideoRef}
@@ -148,26 +172,28 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
         }`}
       />
 
-      {/* Soft Floating Prompt: "Tap anywhere to open" */}
+      {/* Elegant Floating Prompt: Just the words, no symbol, thick navy blue & thicker font */}
       <AnimatePresence>
         {stage === 'idle' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.25 } }}
+            exit={{ opacity: 0, transition: { duration: 0.25 } }}
             className="absolute bottom-10 sm:bottom-14 inset-x-0 flex flex-col items-center justify-center pointer-events-none z-30 px-4"
           >
-            <motion.div
-              animate={{ opacity: [0.75, 1, 0.75], y: [0, -3, 0] }}
-              transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
-              className="px-6 py-2.5 rounded-full bg-black/50 backdrop-blur-md border border-[#D6B477]/40 shadow-2xl"
+            <motion.p
+              animate={{ opacity: [0.85, 1, 0.85], y: [0, -2, 0] }}
+              transition={{ repeat: Infinity, duration: 2.8, ease: 'easeInOut' }}
+              className="font-serif-luxury text-base sm:text-lg md:text-xl tracking-[0.3em] font-black text-[#0E1B2E] uppercase select-none text-center"
+              style={{
+                WebkitTextStroke: '0.65px #0E1B2E',
+                paintOrder: 'stroke fill',
+                textShadow:
+                  '0 0 14px rgba(255,255,255,0.9), 0 0 24px rgba(236,200,128,0.7), 0 1px 3px rgba(255,255,255,0.95)',
+              }}
             >
-              <p className="font-serif-luxury text-xs sm:text-sm tracking-[0.25em] text-[#FAF7F2] uppercase font-semibold flex items-center gap-2.5">
-                <span className="text-[#D6B477] text-xs">✦</span>
-                <span>Tap anywhere to open</span>
-                <span className="text-[#D6B477] text-xs">✦</span>
-              </p>
-            </motion.div>
+              Tap to open
+            </motion.p>
           </motion.div>
         )}
       </AnimatePresence>

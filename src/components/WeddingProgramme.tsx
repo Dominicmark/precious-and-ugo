@@ -20,7 +20,7 @@ const PROGRAMME_ITEMS = [
   {
     time: '05:00 PM',
     title: 'Grand Triumphant Entrance of the Couple',
-    desc: 'Welcoming Mr. & Mrs. Ugochukwu Cyril Omeogu to joyous fanfare and cheers!',
+    desc: 'Welcoming Mr. & Mrs. Ugochukwu Omeogu to joyous fanfare and cheers!',
   },
   {
     time: '05:30 PM',

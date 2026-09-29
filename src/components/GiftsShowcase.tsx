@@ -6,7 +6,7 @@ export const GiftsShowcase: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   const handleCopyAccount = () => {
-    navigator.clipboard.writeText('0123456789 - GTBank (Precious & Ugochukwu)');
+    navigator.clipboard.writeText('0123456789 - GTBank (Precious Uzoamaka & Ugochukwu Omeogu)');
     setCopied(true);
     setTimeout(() => setCopied(false), 2200);
   };
@@ -27,8 +27,8 @@ export const GiftsShowcase: React.FC = () => {
         </h3>
 
         {/* 3. Easily Readable Text */}
-        <p className="font-sans text-xs sm:text-sm text-[#0E1B2E]/80 mt-2 max-w-sm mx-auto leading-relaxed">
-          Your presence is your gift, but all contributions can go to the bank details below. Thank you.
+        <p className="font-serif-luxury text-xs sm:text-sm text-[#0E1B2E]/85 mt-2.5 max-w-sm mx-auto leading-relaxed">
+          Your presence at our celebration is truly a gift to us. For loved ones who wish to honour us with a gift, our celebration account details are provided below.
         </p>
       </ScrollReveal>
 
@@ -39,7 +39,7 @@ export const GiftsShowcase: React.FC = () => {
           Nuptial Celebration Account
         </div>
         <div className="font-display text-xs font-bold text-[#0E1B2E]">
-          Precious Uzoamaka &amp; Ugochukwu Cyril
+          Precious Uzoamaka &amp; Ugochukwu Omeogu
         </div>
         <div className="font-mono text-xs text-[#0E1B2E]/80 mt-0.5 font-semibold">
           GTBank · 0123456789

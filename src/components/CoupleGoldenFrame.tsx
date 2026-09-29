@@ -25,7 +25,7 @@ export const CoupleGoldenFrame: React.FC = () => {
           Precious &amp; Ugochukwu
         </h3>
         <p className="font-serif-luxury text-xs text-[#5687AD] font-semibold tracking-wider uppercase mb-5">
-          #UgoAmaka26 · Together In Love &amp; Grace
+          Precious Uzoamaka &amp; Ugochukwu Omeogu · #UgoAmaka26
         </p>
       </ScrollReveal>
 
@@ -57,7 +57,7 @@ export const CoupleGoldenFrame: React.FC = () => {
           <div className="relative rounded-2xl overflow-hidden bg-black shadow-inner border border-[#D6B477]/40 aspect-[4/5] sm:aspect-[4/4.8]">
             <img
               src={COUPLE_IMAGE_URL}
-              alt="Precious and Ugochukwu wedding couple portrait"
+              alt="Precious Uzoamaka and Ugochukwu Omeogu wedding couple portrait"
               className="w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-103"
               loading="lazy"
             />
@@ -80,12 +80,12 @@ export const CoupleGoldenFrame: React.FC = () => {
           <div className="mt-3.5 pt-3 border-t border-[#D6B477]/30 flex flex-col items-center">
             <div className="flex items-center justify-center gap-2 mb-1">
               <span className="w-6 h-[1px] bg-[#D6B477]" />
-              <Heart className="w-3.5 h-3.5 text-[#C25E2E] fill-[#C25E2E]" />
+              <Heart className="w-3.5 h-3.5 text-[#D6B477] fill-[#D6B477]" />
               <span className="w-6 h-[1px] bg-[#D6B477]" />
             </div>
 
             <p className="font-serif-luxury text-sm sm:text-base font-bold text-[#0E1B2E] tracking-wide">
-              Mr. &amp; Mrs. Cyril Omeogu in Waiting
+              Mr. &amp; Mrs. Ugochukwu Omeogu
             </p>
             <p className="font-serif-luxury text-xs text-[#0E1B2E]/70 italic mt-0.5 max-w-xs leading-relaxed">
               &ldquo;I have found the one whom my soul loves.&rdquo;

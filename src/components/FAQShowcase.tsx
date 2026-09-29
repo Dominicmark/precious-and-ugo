@@ -24,15 +24,15 @@ const FAQS: FAQItem[] = [
   },
   {
     id: 'f3',
-    question: 'Can I take photos and share videos?',
+    question: 'Can I share photos or videos?',
     answer:
-      'Yes, we would be overjoyed! Please capture memories of love and laughter and tag your posts with our wedding hashtag #UgoAmaka26.',
+      'NO!!!!! We kindly request an unplugged and private celebration. Please do not take or post photos and videos on social media so that our special moments remain intimate and everyone can be fully present with us.',
   },
   {
     id: 'f4',
     question: 'What is the dress code?',
     answer:
-      'Formal and elegant traditional attire, black-tie optional, or sophisticated cocktail wear reflecting our royal palette (Navy Blue, Sky Blue, and Champagne Gold).',
+      'Strictly formal Western attire (Black-Tie). Gentlemen: Black-tie tuxedo, dinner jacket, or tailored dark suit with a bow tie or formal tie. Ladies: Floor-length formal evening gowns with optional fascinators in our nuptial palette (Dusty/Sky Blue, Champagne Gold, and Royal Navy accents). Please kindly note: NO traditional attire permitted (strictly no Agbada, Senator, native wear, or African lace/Asoebi).',
   },
   {
     id: 'f5',
@@ -51,69 +51,77 @@ export const FAQShowcase: React.FC = () => {
 
   return (
     <div className="w-full max-w-[460px] mx-auto text-center py-4 px-2">
-      {/* 1. Illustrated Antique Scroll Icon (inspired by Screenshot 8) */}
+      {/* 1. Illustrated Antique Scroll Icon */}
       <div className="flex justify-center mb-2">
-        <div className="w-11 h-11 rounded-full bg-[#FAF5EA] border-2 border-[#D6B477] shadow-sm flex items-center justify-center text-[#D6B477]">
+        <div className="w-11 h-11 rounded-full bg-[#FAF5EA] border-2 border-[#D6B477] shadow-xs flex items-center justify-center text-[#D6B477]">
           <Scroll className="w-5 h-5 text-[#5687AD]" />
         </div>
       </div>
 
-      {/* 2. Clear Luxury Heading */}
+      {/* 2. Editorial Header */}
       <ScrollReveal direction="up" distance={16} duration={700}>
         <h3 className="font-serif-luxury text-2xl sm:text-3xl font-bold text-[#0E1B2E] tracking-tight block">
           Frequently Asked Questions
         </h3>
 
         <div className="flex items-center justify-center gap-2 mt-1 mb-5">
-          <span className="w-8 h-[1px] bg-[#D6B477]" />
+          <span className="w-8 h-[0.5px] bg-[#D6B477]" />
           <span className="font-serif-luxury text-[11px] text-[#5687AD] uppercase tracking-[0.25em] font-semibold">
-            Frequently Asked Questions
+            Essential Nuptial Information
           </span>
-          <span className="w-8 h-[1px] bg-[#D6B477]" />
+          <span className="w-8 h-[0.5px] bg-[#D6B477]" />
         </div>
       </ScrollReveal>
 
-      {/* 3. Soft Parchment Accordion Cards */}
-      <div className="space-y-2.5 text-left">
-        {FAQS.map((faq) => {
+      {/* 3. Parchment Accordion List */}
+      <div className="space-y-3 text-left">
+        {FAQS.map((faq, index) => {
           const isOpen = openId === faq.id;
-
           return (
-            <div
+            <ScrollReveal
               key={faq.id}
-              className="rounded-2xl bg-white/75 backdrop-blur-xs border border-[#D6B477]/50 shadow-2xs overflow-hidden transition-all duration-200"
+              direction="up"
+              distance={14}
+              delay={index * 60}
+              duration={650}
             >
-              <button
-                type="button"
-                onClick={() => toggle(faq.id)}
-                className="w-full px-4 py-3.5 flex items-center justify-between text-left cursor-pointer gap-2"
-                aria-expanded={isOpen}
-              >
-                <span className="font-serif-luxury text-sm font-bold text-[#0E1B2E] leading-snug">
-                  {faq.question}
-                </span>
-                <ChevronDown
-                  className={`w-4 h-4 text-[#D6B477] shrink-0 transition-transform duration-300 ${
-                    isOpen ? 'rotate-180 text-[#5687AD]' : ''
-                  }`}
-                />
-              </button>
-
-              <AnimatePresence initial={false}>
-                {isOpen && (
+              <div className="rounded-xl border border-[#D6B477]/40 bg-white/70 backdrop-blur-xs overflow-hidden transition-all duration-300 shadow-xs hover:border-[#D6B477]">
+                <button
+                  type="button"
+                  onClick={() => toggle(faq.id)}
+                  className="w-full flex items-center justify-between p-4 text-left cursor-pointer focus:outline-none select-none transition-colors"
+                  aria-expanded={isOpen}
+                >
+                  <span className="font-serif-luxury text-sm sm:text-base font-bold text-[#0E1B2E] pr-3 leading-snug">
+                    {faq.question}
+                  </span>
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
+                    animate={{ rotate: isOpen ? 180 : 0 }}
                     transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    className="shrink-0 text-[#D6B477]"
                   >
-                    <div className="px-4 pb-3.5 pt-0 text-xs text-[#0E1B2E]/75 font-serif-luxury italic leading-relaxed border-t border-[#D6B477]/20">
-                      {faq.answer}
-                    </div>
+                    <ChevronDown className="w-4 h-4" />
                   </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      key="content"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.28, ease: [0.04, 0.62, 0.23, 0.98] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 pt-1 text-xs sm:text-sm font-sans text-[#0E1B2E]/80 leading-relaxed border-t border-[#D6B477]/20">
+                        {faq.answer}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </ScrollReveal>
           );
         })}
       </div>

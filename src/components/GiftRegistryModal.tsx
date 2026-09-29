@@ -46,10 +46,7 @@ export const GiftRegistryModal: React.FC<GiftRegistryModalProps> = ({ isOpen, on
 
         <div className="p-4 rounded-xl bg-white/85 border border-[#D6B477]/50 text-xs sm:text-sm text-[#0E1B2E]/85 text-center leading-relaxed font-serif-luxury space-y-3">
           <p>
-            Your presence, warmth, and prayers at our wedding are the most precious gifts we could ever ask for.
-          </p>
-          <p className="text-xs text-[#0E1B2E]/70">
-            For family and friends who have graciously inquired about a wedding gift, a monetary blessing towards our new beginning and home would be deeply and joyfully appreciated.
+            Your presence at our celebration is truly a gift to us. For loved ones who wish to honour us with a gift, our celebration account details are provided below.
           </p>
 
           {/* Account Details Box */}
@@ -59,7 +56,7 @@ export const GiftRegistryModal: React.FC<GiftRegistryModalProps> = ({ isOpen, on
               <span className="text-[#0E1B2E]/50">Nigeria (NGN)</span>
             </div>
             <div className="font-bold text-sm text-[#0E1B2E]">
-              Precious Uzoamaka &amp; Ugochukwu Cyril
+              Precious Uzoamaka &amp; Ugochukwu Omeogu
             </div>
             <div className="text-xs text-[#0E1B2E]/80">
               Guaranty Trust Bank (GTBank) · <span className="font-mono font-bold">0123456789</span>

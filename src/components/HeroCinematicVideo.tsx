@@ -48,10 +48,10 @@ export const HeroCinematicVideo: React.FC<HeroCinematicVideoProps> = () => {
       {/* 3. Bottom Smooth Fade-Out directly to the Vintage Parchment Background (#FAF5EA) */}
       <div className="absolute inset-x-0 bottom-0 h-44 sm:h-56 bg-gradient-to-t from-[#FAF5EA] via-[#FAF5EA]/85 to-transparent pointer-events-none" />
 
-      {/* 4. Top Sky Area: Couple Names in Authentic Slanted Script Font matching the Screenshot */}
+      {/* 4. Top Sky Area: Couple Names with 30% Reduced Shadows for Clean Elegance */}
       <div className="relative z-10 w-full pt-16 sm:pt-20 px-4 flex flex-col items-center text-center">
         <div className="space-y-1 sm:space-y-2 max-w-lg mx-auto">
-          {/* Couple Names in Slanted Romance Calligraphy (Soft Fade In) */}
+          {/* Couple Names in Bolder Wedding Calligraphy (Soft Fade In) */}
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
@@ -59,21 +59,33 @@ export const HeroCinematicVideo: React.FC<HeroCinematicVideoProps> = () => {
             className="space-y-0.5"
           >
             <h1
-              className="font-script-romantic text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wide leading-tight drop-shadow-md"
+              className="font-script-romantic-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wide leading-tight drop-shadow-md"
               style={{
-                textShadow: '0 2px 8px rgba(0,0,0,0.58), 0 1px 2px rgba(0,0,0,0.65)',
+                textShadow:
+                  '0 2px 10px rgba(0,0,0,0.60), 0 3px 19px rgba(0,0,0,0.49), 0 0 11px rgba(214,180,119,0.24)',
               }}
             >
-              Precious Uzoamaka &amp;
+              Precious Uzoamaka
             </h1>
 
-            <h1
-              className="font-script-romantic text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wide leading-tight drop-shadow-md"
+            <div
+              className="font-script-romantic-bold text-3xl sm:text-4xl md:text-5xl text-[#ECC880] leading-none py-0.5 sm:py-1 drop-shadow-sm"
               style={{
-                textShadow: '0 2px 8px rgba(0,0,0,0.58), 0 1px 2px rgba(0,0,0,0.65)',
+                textShadow:
+                  '0 2px 7px rgba(0,0,0,0.56), 0 0 10px rgba(214,180,119,0.35)',
               }}
             >
-              Ugochukwu Cyril
+              &amp;
+            </div>
+
+            <h1
+              className="font-script-romantic-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wide leading-tight drop-shadow-md"
+              style={{
+                textShadow:
+                  '0 2px 10px rgba(0,0,0,0.60), 0 3px 19px rgba(0,0,0,0.49), 0 0 11px rgba(214,180,119,0.24)',
+              }}
+            >
+              Ugochukwu Omeogu
             </h1>
           </motion.div>
 
@@ -85,12 +97,12 @@ export const HeroCinematicVideo: React.FC<HeroCinematicVideoProps> = () => {
             className="pt-3 sm:pt-5"
           >
             <p
-              className="font-display text-xs sm:text-sm tracking-[0.35em] font-bold text-white/95 uppercase leading-relaxed max-w-xs sm:max-w-md mx-auto"
+              className="font-display text-xs sm:text-sm tracking-[0.25em] font-bold text-white/95 uppercase leading-relaxed max-w-xs sm:max-w-md mx-auto"
               style={{
                 textShadow: '0 1px 4px rgba(0,0,0,0.58), 0 1px 2px rgba(0,0,0,0.60)',
               }}
             >
-              WOULD LIKE TO INVITE YOU FOR OUR WEDDING
+              JOYFULLY INVITE YOU TO THEIR WEDDING CEREMONY/ RECEPTION
             </p>
           </motion.div>
         </div>

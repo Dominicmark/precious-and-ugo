@@ -41,6 +41,13 @@
   .font-script-romantic {
     font-family: 'Great Vibes', 'Allura', 'Alex Brush', cursive;
   }
+
+  .font-script-romantic-bold {
+    font-family: 'Great Vibes', 'Allura', 'Alex Brush', cursive;
+    font-weight: 700;
+    -webkit-text-stroke: 1.15px currentColor;
+    paint-order: stroke fill;
+  }
 }
 
 /* Vintage Antique Map & Parchment Texture */
@@ -126,4 +133,3 @@
   background: #D6B477;
   border-radius: 9999px;
 }
-

@@ -1,7 +1,7 @@
 /**
  * Wedding Audio Engine
  * High-fidelity soundtrack manager: "Rewrite The Stars"
- * Supports local audio, Cloudinary stream, and Web Audio API synthesizer.
+ * Supports local audio, Cloudinary stream, tactile sounds, and sparkle chimes.
  */
 
 export const DEFAULT_LOCAL_AUDIO = '/audio/wedding-song.mp3';
@@ -12,13 +12,8 @@ export const WEDDING_SONG_TITLE = 'Rewrite The Stars - The Greatest Showman Cast
 const STORAGE_MUSIC_URL_KEY = 'ugoamaka26_bg_music_url';
 
 let audioCtx: AudioContext | null = null;
-let bgMusicGain: GainNode | null = null;
-let bgMusicOscs: OscillatorNode[] = [];
-let isPlayingBgMusic = false;
-
-// Shared HTML5 Audio element for custom song playback
 let customAudioEl: HTMLAudioElement | null = null;
-let fadeInterval: number | null = null;
+let isPlayingBgMusic = false;
 
 function notifyMusicState(playing: boolean) {
   isPlayingBgMusic = playing;
@@ -81,24 +76,142 @@ export function getAudioContext(): AudioContext | null {
   }
 }
 
-/**
- * Primes and unlocks audio context and media element during any user gesture
- */
-export function primeAudio() {
-  getAudioContext();
-  if (!customAudioEl && typeof window !== 'undefined') {
-    getOrCreateAudioElement();
-  }
-}
-
 function getOrCreateAudioElement(): HTMLAudioElement {
   if (!customAudioEl && typeof window !== 'undefined') {
     customAudioEl = new Audio();
     customAudioEl.loop = true;
     customAudioEl.preload = 'auto';
-    customAudioEl.volume = 0.8;
+    customAudioEl.volume = 0.85;
+
+    const initialUrl = getCustomMusicUrl();
+    customAudioEl.src = initialUrl;
+
+    customAudioEl.addEventListener('play', () => {
+      notifyMusicState(true);
+    });
+
+    customAudioEl.addEventListener('pause', () => {
+      notifyMusicState(false);
+    });
+
+    customAudioEl.addEventListener('ended', () => {
+      notifyMusicState(false);
+    });
+
+    customAudioEl.addEventListener('error', () => {
+      // If primary failed, try remote fallback
+      if (customAudioEl && !customAudioEl.src.includes('cloudinary')) {
+        customAudioEl.src = DEFAULT_WEDDING_SONG_URL;
+        customAudioEl.load();
+        if (isPlayingBgMusic) {
+          customAudioEl.play().catch(() => notifyMusicState(false));
+        }
+      } else {
+        notifyMusicState(false);
+      }
+    });
   }
   return customAudioEl!;
+}
+
+/**
+ * Primes and unlocks audio context and media element during any user gesture
+ */
+export function primeAudio() {
+  getAudioContext();
+  if (typeof window !== 'undefined') {
+    const audio = getOrCreateAudioElement();
+    if (!audio.src) {
+      audio.src = getCustomMusicUrl();
+    }
+  }
+}
+
+/**
+ * Plays a clean, crisp tactile click sound when the envelope is touched
+ */
+export function playTactileClickSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    
+    // Snappy high-frequency click transient
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(2200, now);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.018);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.022);
+
+    // Subtle low body punch
+    const bodyOsc = ctx.createOscillator();
+    const bodyGain = ctx.createGain();
+    bodyOsc.type = 'sine';
+    bodyOsc.frequency.setValueAtTime(350, now);
+    bodyOsc.frequency.exponentialRampToValueAtTime(90, now + 0.025);
+
+    bodyGain.gain.setValueAtTime(0.18, now);
+    bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.025);
+
+    bodyOsc.connect(bodyGain);
+    bodyGain.connect(ctx.destination);
+
+    bodyOsc.start(now);
+    bodyOsc.stop(now + 0.028);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Plays a magical, shimmering crystalline glitter / sparkle sound as the envelope opens
+ */
+export function playGlitterSparkleSound() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    // Twinkling celestial micro-chime frequencies: F#5, A5, C#6, E6, G#6, B6, E7, G#7
+    const sparkleNotes = [1479.98, 1760.00, 2217.46, 2637.02, 3322.44, 3951.07, 4978.03, 6271.93];
+
+    sparkleNotes.forEach((freq, idx) => {
+      // Randomized twinkling cascade delay over ~0.9s
+      const delay = idx * 0.08 + (Math.random() * 0.04 - 0.02);
+      const startTime = now + Math.max(0, delay);
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+      // Subtle sparkle pitch glissando
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.05, startTime + 0.25);
+
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.linearRampToValueAtTime(0.08, startTime + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.36);
+    });
+  } catch {
+    /* ignore */
+  }
 }
 
 /**
@@ -110,102 +223,71 @@ export function playEnvelopeOpenSound() {
 
   try {
     const now = ctx.currentTime;
-    const bufferSize = Math.floor(ctx.sampleRate * 0.4);
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.15));
-    }
-
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(650, now);
-    filter.frequency.exponentialRampToValueAtTime(1400, now + 0.25);
-
+    const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.08, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
 
-    noise.connect(filter);
-    filter.connect(gain);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.18);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+
+    osc.connect(gain);
     gain.connect(ctx.destination);
 
-    noise.start(now);
-    noise.stop(now + 0.4);
+    osc.start(now);
+    osc.stop(now + 0.36);
   } catch {
     /* ignore audio errors */
   }
 }
 
 /**
- * Plays celebratory chime chords
+ * Plays a gentle scratch friction sound during card scratch
  */
-export function playCelebrationChime() {
+export function playScratchSound() {
   const ctx = getAudioContext();
   if (!ctx) return;
 
   try {
     const now = ctx.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    const bufferSize = ctx.sampleRate * 0.05;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
 
-    notes.forEach((freq, i) => {
-      const noteTime = now + i * 0.08;
-      const osc = ctx.createOscillator();
-      const oscHarmonic = ctx.createOscillator();
-      const gain = ctx.createGain();
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, noteTime);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1200 + Math.random() * 400, now);
+    filter.Q.setValueAtTime(1.5, now);
 
-      oscHarmonic.type = 'triangle';
-      oscHarmonic.frequency.setValueAtTime(freq * 2, noteTime);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.04, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
 
-      gain.gain.setValueAtTime(0.06, noteTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, noteTime + 1.2);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
 
-      osc.connect(gain);
-      oscHarmonic.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(noteTime);
-      oscHarmonic.start(noteTime);
-      osc.stop(noteTime + 1.3);
-      oscHarmonic.stop(noteTime + 1.3);
-    });
+    noise.start(now);
+    noise.stop(now + 0.05);
   } catch {
     /* ignore */
   }
 }
 
 /**
- * Plays a gentle scratch friction sound during card scratch
+ * Plays a subtle swoosh scratch sound during scratch reveal gestures
  */
 export function playScratchSwoosh() {
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  try {
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(800 + Math.random() * 400, now);
-
-    gain.gain.setValueAtTime(0.015, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.07);
-  } catch {
-    /* ignore */
-  }
+  playScratchSound();
 }
 
 /**
@@ -221,11 +303,11 @@ export function playWaxBreakSound() {
     const gain = ctx.createGain();
 
     osc.type = 'square';
-    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.setValueAtTime(440, now);
     osc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
 
-    gain.gain.setValueAtTime(0.09, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -238,127 +320,91 @@ export function playWaxBreakSound() {
 }
 
 /**
- * Helper to play synthesized fallback chords
+ * Plays a crystalline celebratory chime arpeggio on card reveal / RSVP success
  */
-function playSynthesizedAmbientHarmony(ctx: AudioContext) {
-  bgMusicOscs.forEach((o) => {
-    try {
-      o.stop();
-    } catch {
-      /* ignore */
-    }
-  });
-  bgMusicOscs = [];
+export function playCelebrationChime() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
 
-  const now = ctx.currentTime;
-  const masterGain = ctx.createGain();
-  masterGain.gain.setValueAtTime(0.001, now);
-  masterGain.gain.linearRampToValueAtTime(0.08, now + 1);
-  masterGain.connect(ctx.destination);
-  bgMusicGain = masterGain;
+  try {
+    const now = ctx.currentTime;
+    const freqs = [659.25, 830.61, 987.77, 1318.51];
 
-  const chord = [220, 277.18, 329.63, 440];
-  chord.forEach((freq) => {
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, now);
+    freqs.forEach((freq, idx) => {
+      const startTime = now + idx * 0.09;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
-    const panner = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-    if (panner) {
-      panner.pan.value = (Math.random() - 0.5) * 0.6;
-      osc.connect(panner);
-      panner.connect(masterGain);
-    } else {
-      osc.connect(masterGain);
-    }
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
 
-    osc.start(now);
-    bgMusicOscs.push(osc);
-  });
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.linearRampToValueAtTime(0.12, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.85);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.9);
+    });
+  } catch {
+    /* ignore */
+  }
 }
 
 /**
  * Toggles background wedding song loop with crystal-clear audible volume
  */
 export function toggleBackgroundMusic(enabled?: boolean): boolean {
-  const targetState = enabled !== undefined ? enabled : !isPlayingBgMusic;
+  if (typeof window === 'undefined') return false;
 
-  // STOP / MUTE MUSIC
+  getAudioContext();
+  const audio = getOrCreateAudioElement();
+  const currentlyPlaying = !audio.paused && !audio.ended && audio.currentTime > 0;
+  const targetState = enabled !== undefined ? enabled : !currentlyPlaying;
+
   if (!targetState) {
-    if (fadeInterval) {
-      clearInterval(fadeInterval);
-      fadeInterval = null;
+    try {
+      audio.pause();
+    } catch {
+      /* ignore */
     }
-
-    if (customAudioEl) {
-      try {
-        customAudioEl.pause();
-      } catch {
-        /* ignore */
-      }
-    }
-
-    const ctx = audioCtx;
-    if (ctx && bgMusicGain) {
-      try {
-        bgMusicGain.gain.setValueAtTime(0.00001, ctx.currentTime);
-      } catch {
-        /* ignore */
-      }
-      bgMusicOscs.forEach((o) => {
-        try {
-          o.stop();
-        } catch {
-          /* ignore */
-        }
-      });
-      bgMusicOscs = [];
-    }
-
     notifyMusicState(false);
     return false;
   }
 
   // START / UNMUTE MUSIC
-  getAudioContext();
-  const audio = getOrCreateAudioElement();
-  const primaryUrl = getCustomMusicUrl();
+  if (!audio.src) {
+    audio.src = getCustomMusicUrl();
+  }
+  audio.volume = 0.85;
 
-  const tryPlay = (url: string, isFallback = false) => {
-    if (!audio.src || !audio.src.includes(url)) {
-      audio.src = url;
-    }
-    audio.volume = 0.8; // Direct audible volume (no near-silence 0.05)
+  const playPromise = audio.play();
+  if (playPromise !== undefined) {
+    playPromise
+      .then(() => {
+        notifyMusicState(true);
+      })
+      .catch((err) => {
+        console.warn('Playback initiation deferred until user interaction:', err);
+        // If local path failed, try the Cloudinary link
+        if (!audio.src.includes('cloudinary')) {
+          audio.src = DEFAULT_WEDDING_SONG_URL;
+          audio.load();
+          audio.play()
+            .then(() => notifyMusicState(true))
+            .catch(() => notifyMusicState(false));
+        } else {
+          notifyMusicState(false);
+        }
+      });
+  }
 
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          notifyMusicState(true);
-        })
-        .catch(() => {
-          if (!isFallback) {
-            // Try alternative source (Cloudinary if local, or local if Cloudinary)
-            const fallbackUrl = url === DEFAULT_LOCAL_AUDIO ? DEFAULT_WEDDING_SONG_URL : DEFAULT_LOCAL_AUDIO;
-            tryPlay(fallbackUrl, true);
-          } else {
-            // If both audio file attempts fail, fallback to Web Audio synthesizer
-            const ctx = getAudioContext();
-            if (ctx) {
-              playSynthesizedAmbientHarmony(ctx);
-              notifyMusicState(true);
-            } else {
-              notifyMusicState(false);
-            }
-          }
-        });
-    }
-  };
-
-  tryPlay(primaryUrl);
   return true;
 }
 
 export function isBgMusicPlaying(): boolean {
-  return isPlayingBgMusic;
+  if (!customAudioEl) return false;
+  return !customAudioEl.paused && !customAudioEl.ended && customAudioEl.readyState >= 1;
 }

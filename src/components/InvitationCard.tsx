@@ -6,7 +6,6 @@ import { Countdown } from './Countdown';
 import { EventDetails } from './EventDetails';
 import { CoupleGoldenFrame } from './CoupleGoldenFrame';
 import { CoupleIllustratedMedallion } from './CoupleIllustratedMedallion';
-import { WhatWeHavePlannedTimeline } from './WhatWeHavePlannedTimeline';
 import { DressCodeShowcase } from './DressCodeShowcase';
 import { GiftsShowcase } from './GiftsShowcase';
 import { FAQShowcase } from './FAQShowcase';
@@ -42,21 +41,21 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
 
   return (
     <div className="relative w-full overflow-x-hidden selection:bg-[#8FB5D1]/30">
-      {/* 1. DISCREET FLOATING TOP NAVIGATION CONTROLS (Clean, Uncluttered, Pure Icons with No Cards) */}
+      {/* 1. FLOATING TOP CONTROLS (Soundtrack Player & Drawer Menu) */}
       <header className="fixed top-3 inset-x-3 sm:inset-x-6 z-40 flex items-center justify-between pointer-events-none">
-        {/* Left: Discreet Audio Player (Pure Icon) */}
+        {/* Left: Luxury Floating Audio Player */}
         <div className="pointer-events-auto">
           <AudioPlayerToggle />
         </div>
 
-        {/* Right: Sleek Minimalist Hamburger Menu Button (Pure Icon) */}
+        {/* Right: Sleek Minimalist Hamburger Menu Button */}
         <div className="pointer-events-auto">
           <button
             onClick={() => setIsMenuOpen(true)}
-            className="p-2.5 text-white/95 hover:text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] active:scale-90 transition-transform cursor-pointer select-none focus:outline-none"
+            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#0E1B2E]/90 hover:bg-[#0E1B2E] text-white border border-[#D6B477]/80 shadow-[0_8px_25px_-5px_rgba(14,27,46,0.45)] backdrop-blur-md flex items-center justify-center active:scale-90 transition-transform cursor-pointer select-none focus:outline-none"
             aria-label="Open Navigation Menu"
           >
-            <Menu className="w-6 h-6 sm:w-7 sm:h-7 drop-shadow-md" />
+            <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-[#D6B477]" />
           </button>
         </div>
       </header>
@@ -64,7 +63,7 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
       {/* 2. FULL-BLEED BACKGROUND HERO VIDEO (Spreads edge-to-edge, not in a card) */}
       <HeroCinematicVideo onOpenMenu={() => setIsMenuOpen(true)} />
 
-      {/* 3. CONTINUOUS ILLUMINATED PARCHMENT SCROLL (Immediately after video fade) */}
+      {/* 3. CONTINUOUS ILLUMINATED PARCHMENT SCROLL */}
       <div className="relative w-full max-w-xl mx-auto px-4 sm:px-6 pt-4 pb-12 sm:pb-20 text-center space-y-12 sm:space-y-16">
         {/* SECTION 1: MAKE OUR DAY SPECIAL / SCRATCH-TO-REVEAL GOLD FOIL */}
         <ParallaxContentContainer
@@ -84,7 +83,7 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
           <Countdown />
         </ParallaxContentContainer>
 
-        {/* SECTION 3: ILLUSTRATED COUPLE MEDALLION (Screenshot 6) */}
+        {/* SECTION 3: ILLUSTRATED COUPLE MEDALLION */}
         <ParallaxContentContainer
           offsetRange={[24, -24]}
           depthScale={[0.988, 1.012]}
@@ -93,16 +92,7 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
           <CoupleIllustratedMedallion />
         </ParallaxContentContainer>
 
-        {/* SECTION 4: WHAT WE HAVE PLANNED FOR YOU (Screenshot 2) */}
-        <ParallaxContentContainer
-          id="timeline-section"
-          offsetRange={[18, -18]}
-          revealDistance={24}
-        >
-          <WhatWeHavePlannedTimeline />
-        </ParallaxContentContainer>
-
-        {/* SECTION 5: CELEBRATION DATE & CALENDAR INTEGRATION */}
+        {/* SECTION 4: CELEBRATION DATE & CALENDAR INTEGRATION */}
         <ParallaxContentContainer
           offsetRange={[14, -14]}
           revealDistance={22}
@@ -110,7 +100,7 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
           <EventDetails />
         </ParallaxContentContainer>
 
-        {/* SECTION 6: THE BELOVED COUPLE IN GOLDEN FRAME */}
+        {/* SECTION 5: THE BELOVED COUPLE IN GOLDEN FRAME */}
         <ParallaxContentContainer
           id="couple-section"
           offsetRange={[16, -16]}
@@ -120,7 +110,7 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
           <CoupleGoldenFrame />
         </ParallaxContentContainer>
 
-        {/* SECTION 7: ATTIRE & NUPTIAL PALETTE (Fully Elaborated with Silhouettes) */}
+        {/* SECTION 6: ATTIRE & NUPTIAL PALETTE (Fully Elaborated with Silhouettes) */}
         <ParallaxContentContainer
           id="attire-section"
           offsetRange={[14, -14]}
@@ -129,7 +119,7 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
           <DressCodeShowcase />
         </ParallaxContentContainer>
 
-        {/* SECTION 7: GIFTS & BLESSINGS (Screenshot 4) */}
+        {/* SECTION 7: GIFTS & BLESSINGS */}
         <ParallaxContentContainer
           id="gifts-section"
           offsetRange={[16, -16]}
@@ -138,7 +128,7 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
           <GiftsShowcase />
         </ParallaxContentContainer>
 
-        {/* SECTION 8: FAQ ACCORDION (Screenshot 8) */}
+        {/* SECTION 8: FAQ ACCORDION */}
         <ParallaxContentContainer
           id="faq-section"
           offsetRange={[16, -16]}
