@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
-import { motion, useScroll, useTransform, useSpring, useReducedMotion } from 'motion/react';
-import { WaxSeal } from './WaxSeal';
+import { HeroCinematicVideo } from './HeroCinematicVideo';
+import { NavigationDrawer } from './NavigationDrawer';
 import { ScratchReveal } from './ScratchReveal';
 import { Countdown } from './Countdown';
 import { EventDetails } from './EventDetails';
-import { DressCode } from './DressCode';
+import { CoupleGoldenFrame } from './CoupleGoldenFrame';
+import { CoupleIllustratedMedallion } from './CoupleIllustratedMedallion';
+import { WhatWeHavePlannedTimeline } from './WhatWeHavePlannedTimeline';
+import { DressCodeShowcase } from './DressCodeShowcase';
+import { GiftsShowcase } from './GiftsShowcase';
+import { FAQShowcase } from './FAQShowcase';
+import { ScrollToRsvpGuide } from './ScrollToRsvpGuide';
 import { RSVPForm } from './RSVPForm';
 import { ContactButtons } from './ContactButtons';
-import { WeddingProgramme } from './WeddingProgramme';
 import { LoveStoryModal } from './LoveStoryModal';
 import { GiftRegistryModal } from './GiftRegistryModal';
 import { AudioPlayerToggle } from './AudioPlayerToggle';
-import { CoupleGallery } from './CoupleGallery';
-import { GuestWishesWall } from './GuestWishesWall';
+import { ParallaxContentContainer } from './ParallaxContentContainer';
 import { ScrollReveal } from './ScrollReveal';
-import { MailOpen, BookOpen, Heart, Shield, Sparkles, Gift, MessageSquareHeart } from 'lucide-react';
+import { Menu, Shield } from 'lucide-react';
 
 interface InvitationCardProps {
   onReopenEnvelope: () => void;
@@ -25,14 +29,9 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
   onReopenEnvelope,
   onOpenAdmin,
 }) => {
-  const [showProgramme, setShowProgramme] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLoveStory, setShowLoveStory] = useState(false);
   const [showGiftModal, setShowGiftModal] = useState(false);
-
-  const shouldReduceMotion = useReducedMotion();
-  const { scrollY } = useScroll();
-  const smoothScrollY = useSpring(scrollY, { stiffness: 90, damping: 25 });
-  const sealParallaxY = useTransform(smoothScrollY, [0, 500], [0, -18]);
 
   const scrollToRSVP = () => {
     const el = document.getElementById('rsvp-section');
@@ -41,258 +40,193 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
     }
   };
 
-  const scrollToWishes = () => {
-    const el = document.getElementById('wishes-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   return (
-    <div className="relative w-full max-w-xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
-      {/* Top Floating Utility Controls (Audio, Story, Programme, Gifts, Envelope) */}
-      <header className="sticky top-2 z-30 mb-4 flex items-center justify-between px-3 py-2 rounded-2xl bg-white/95 backdrop-blur-md border border-[#D6B477]/60 shadow-md">
-        {/* Brand Kicker */}
-        <span className="font-display text-xs font-extrabold tracking-widest text-[#0E1B2E]">
-          #UgoAmaka26
-        </span>
-
-        {/* Action Controls */}
-        <div className="flex items-center gap-1 sm:gap-2">
+    <div className="relative w-full overflow-x-hidden selection:bg-[#8FB5D1]/30">
+      {/* 1. DISCREET FLOATING TOP NAVIGATION CONTROLS (Clean, Uncluttered, Pure Icons with No Cards) */}
+      <header className="fixed top-3 inset-x-3 sm:inset-x-6 z-40 flex items-center justify-between pointer-events-none">
+        {/* Left: Discreet Audio Player (Pure Icon) */}
+        <div className="pointer-events-auto">
           <AudioPlayerToggle />
+        </div>
 
+        {/* Right: Sleek Minimalist Hamburger Menu Button (Pure Icon) */}
+        <div className="pointer-events-auto">
           <button
-            onClick={() => setShowLoveStory(true)}
-            className="p-1.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] hover:bg-[#EBF3F8] transition-colors flex items-center gap-1 cursor-pointer"
-            title="Our Journey to Forever"
+            onClick={() => setIsMenuOpen(true)}
+            className="p-2.5 text-white/95 hover:text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] active:scale-90 transition-transform cursor-pointer select-none focus:outline-none"
+            aria-label="Open Navigation Menu"
           >
-            <Heart className="w-3.5 h-3.5 text-[#8FB5D1]" />
-            <span className="hidden sm:inline text-[11px]">Story</span>
-          </button>
-
-          <button
-            onClick={() => setShowProgramme(true)}
-            className="p-1.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] hover:bg-[#EBF3F8] transition-colors flex items-center gap-1 cursor-pointer"
-            title="Wedding Programme & Order of Events"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-[#D6B477]" />
-            <span className="hidden sm:inline text-[11px]">Programme</span>
-          </button>
-
-          <button
-            onClick={() => setShowGiftModal(true)}
-            className="p-1.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] hover:bg-[#EBF3F8] transition-colors flex items-center gap-1 cursor-pointer"
-            title="Registry & Blessings"
-          >
-            <Gift className="w-3.5 h-3.5 text-[#8FB5D1]" />
-            <span className="hidden sm:inline text-[11px]">Gifts</span>
-          </button>
-
-          <button
-            onClick={scrollToWishes}
-            className="p-1.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] hover:bg-[#EBF3F8] transition-colors flex items-center gap-1 cursor-pointer"
-            title="Wishes Wall"
-          >
-            <MessageSquareHeart className="w-3.5 h-3.5 text-[#8FB5D1]" />
-            <span className="hidden sm:inline text-[11px]">Wishes</span>
-          </button>
-
-          <button
-            onClick={onReopenEnvelope}
-            className="p-1.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] hover:bg-[#EBF3F8] transition-colors flex items-center gap-1 cursor-pointer"
-            title="Replay Physical Envelope Animation"
-          >
-            <MailOpen className="w-3.5 h-3.5 text-[#0E1B2E]" />
-            <span className="hidden sm:inline text-[11px]">Envelope</span>
+            <Menu className="w-6 h-6 sm:w-7 sm:h-7 drop-shadow-md" />
           </button>
         </div>
       </header>
 
-      {/* MAIN INVITATION CARD (Luxury Physical Stationery Appearance) */}
-      <motion.article
-        initial={{ opacity: 0, y: 24, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-        className="relative rounded-2xl sm:rounded-3xl bg-[#FAF7F2]/95 backdrop-blur-md paper-texture p-6 sm:p-10 border-2 border-[#D6B477] shadow-[0_25px_70px_-15px_rgba(14,27,46,0.22)] text-center overflow-hidden"
-      >
-        {/* Double Gold Foil Decorative Inner Border */}
-        <div className="absolute inset-2 sm:inset-3 border border-[#D6B477]/50 rounded-xl pointer-events-none" />
-        <div className="absolute inset-3 sm:inset-4 border border-[#D6B477]/30 rounded-lg pointer-events-none" />
+      {/* 2. FULL-BLEED BACKGROUND HERO VIDEO (Spreads edge-to-edge, not in a card) */}
+      <HeroCinematicVideo onOpenMenu={() => setIsMenuOpen(true)} />
 
-        {/* Ornate Corner Elements */}
-        <div className="absolute top-4 left-4 text-[#D6B477] text-xs pointer-events-none">❖</div>
-        <div className="absolute top-4 right-4 text-[#D6B477] text-xs pointer-events-none">❖</div>
-        <div className="absolute bottom-4 left-4 text-[#D6B477] text-xs pointer-events-none">❖</div>
-        <div className="absolute bottom-4 right-4 text-[#D6B477] text-xs pointer-events-none">❖</div>
+      {/* 3. CONTINUOUS ILLUMINATED PARCHMENT SCROLL (Immediately after video fade) */}
+      <div className="relative w-full max-w-xl mx-auto px-4 sm:px-6 pt-4 pb-12 sm:pb-20 text-center space-y-12 sm:space-y-16">
+        {/* SECTION 1: MAKE OUR DAY SPECIAL / SCRATCH-TO-REVEAL GOLD FOIL */}
+        <ParallaxContentContainer
+          id="scratch-section"
+          offsetRange={[18, -18]}
+          depthScale={[0.985, 1.015]}
+          revealDistance={24}
+        >
+          <ScratchReveal />
+        </ParallaxContentContainer>
 
-        {/* SECTION 4: HEADER & COUPLE NAMES */}
-        <ScrollReveal direction="up" distance={20} duration={0.8} threshold={0.1}>
-          <div className="pt-2 sm:pt-4 mb-8">
-            <motion.div
-              style={{ y: shouldReduceMotion ? 0 : sealParallaxY }}
-              className="flex justify-center mb-4 will-change-transform"
-            >
-              <WaxSeal size={96} interactive={true} onClick={onReopenEnvelope} />
-            </motion.div>
+        {/* SECTION 2: DYNAMIC COUNTDOWN */}
+        <ParallaxContentContainer
+          offsetRange={[12, -12]}
+          revealDistance={20}
+        >
+          <Countdown />
+        </ParallaxContentContainer>
 
-            <p className="font-serif-luxury text-xs sm:text-sm tracking-[0.3em] text-[#5687AD] uppercase font-bold">
-              THE WEDDING RECEPTION OF
-            </p>
+        {/* SECTION 3: ILLUSTRATED COUPLE MEDALLION (Screenshot 6) */}
+        <ParallaxContentContainer
+          offsetRange={[24, -24]}
+          depthScale={[0.988, 1.012]}
+          revealDistance={26}
+        >
+          <CoupleIllustratedMedallion />
+        </ParallaxContentContainer>
 
-            {/* Couple Names */}
-            <div className="my-3 space-y-1">
-              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#0E1B2E] tracking-wider leading-tight">
-                PRECIOUS UZOAMAKA MARK
-              </h1>
+        {/* SECTION 4: WHAT WE HAVE PLANNED FOR YOU (Screenshot 2) */}
+        <ParallaxContentContainer
+          id="timeline-section"
+          offsetRange={[18, -18]}
+          revealDistance={24}
+        >
+          <WhatWeHavePlannedTimeline />
+        </ParallaxContentContainer>
 
-              <div className="flex items-center justify-center gap-3 my-1">
-                <span className="w-12 h-[1px] bg-gradient-to-r from-transparent to-[#D6B477]" />
-                <span className="font-script text-3xl sm:text-4xl text-[#8FB5D1] leading-none">
-                  &amp;
-                </span>
-                <span className="w-12 h-[1px] bg-gradient-to-l from-transparent to-[#D6B477]" />
-              </div>
+        {/* SECTION 5: CELEBRATION DATE & CALENDAR INTEGRATION */}
+        <ParallaxContentContainer
+          offsetRange={[14, -14]}
+          revealDistance={22}
+        >
+          <EventDetails />
+        </ParallaxContentContainer>
 
-              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#0E1B2E] tracking-wider leading-tight">
-                UGOCHUKWU CYRIL OMEOGU
-              </h1>
-            </div>
+        {/* SECTION 6: THE BELOVED COUPLE IN GOLDEN FRAME */}
+        <ParallaxContentContainer
+          id="couple-section"
+          offsetRange={[16, -16]}
+          depthScale={[0.985, 1.015]}
+          revealDistance={24}
+        >
+          <CoupleGoldenFrame />
+        </ParallaxContentContainer>
 
-            {/* Hashtag */}
-            <div className="inline-block mt-1">
-              <span className="font-display text-xs sm:text-sm tracking-[0.3em] font-bold text-[#D6B477] bg-[#0E1B2E] px-4 py-1 rounded-full shadow-xs">
-                #UgoAmaka26
-              </span>
-            </div>
+        {/* SECTION 7: ATTIRE & NUPTIAL PALETTE (Fully Elaborated with Silhouettes) */}
+        <ParallaxContentContainer
+          id="attire-section"
+          offsetRange={[14, -14]}
+          revealDistance={22}
+        >
+          <DressCodeShowcase />
+        </ParallaxContentContainer>
 
-            <p className="font-serif-luxury text-xs sm:text-sm text-[#0E1B2E]/75 italic mt-3 max-w-sm mx-auto leading-relaxed">
-              Together with their families, cordially invite you to celebrate their union in holy matrimony and joyous reception banquet.
-            </p>
-          </div>
-        </ScrollReveal>
+        {/* SECTION 7: GIFTS & BLESSINGS (Screenshot 4) */}
+        <ParallaxContentContainer
+          id="gifts-section"
+          offsetRange={[16, -16]}
+          revealDistance={22}
+        >
+          <GiftsShowcase />
+        </ParallaxContentContainer>
 
-        {/* SECTION 5: SIGNATURE SCRATCH-TO-REVEAL INTERACTION */}
-        <ScrollReveal direction="up" distance={30} delay={0.05} threshold={0.12}>
-          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-            <ScratchReveal />
-          </div>
-        </ScrollReveal>
+        {/* SECTION 8: FAQ ACCORDION (Screenshot 8) */}
+        <ParallaxContentContainer
+          id="faq-section"
+          offsetRange={[16, -16]}
+          revealDistance={22}
+        >
+          <FAQShowcase />
+        </ParallaxContentContainer>
 
-        {/* SECTION 7: DYNAMIC COUNTDOWN */}
-        <ScrollReveal direction="up" distance={30} delay={0.05} threshold={0.12}>
-          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-            <Countdown />
-          </div>
-        </ScrollReveal>
-
-        {/* COUPLE EDITORIAL SHOWCASE GALLERY */}
-        <ScrollReveal direction="up" distance={35} delay={0.05} threshold={0.12}>
-          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-            <CoupleGallery />
-          </div>
-        </ScrollReveal>
-
-        {/* SECTION 6: EVENT DETAILS & DIRECTIONS */}
-        <ScrollReveal direction="up" distance={35} delay={0.05} threshold={0.12}>
-          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-            <EventDetails />
-          </div>
-        </ScrollReveal>
-
-        {/* SECTION 8: DRESS CODE */}
-        <ScrollReveal direction="up" distance={30} delay={0.05} threshold={0.12}>
-          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-            <DressCode />
-          </div>
-        </ScrollReveal>
-
-        {/* INTERACTIVE GUEST WISHES WALL */}
-        <ScrollReveal direction="up" distance={35} delay={0.05} threshold={0.12}>
-          <div id="wishes-section" className="my-8 pt-6 border-t border-[#D6B477]/40">
-            <GuestWishesWall />
-          </div>
+        {/* SCROLL TO RSVP GUIDE */}
+        <ScrollReveal direction="up" distance={16} duration={700}>
+          <ScrollToRsvpGuide label="SCROLL TO CONFIRM RSVP" />
         </ScrollReveal>
 
         {/* SECTION 9: RSVP EXPERIENCE */}
-        <ScrollReveal direction="up" distance={40} delay={0.05} threshold={0.12}>
-          <div id="rsvp-section" className="my-8 pt-6 border-t border-[#D6B477]/40">
+        <ParallaxContentContainer
+          id="rsvp-section"
+          offsetRange={[20, -20]}
+          depthScale={[0.985, 1.015]}
+          revealDistance={28}
+        >
+          <div className="py-2">
             <RSVPForm />
           </div>
-        </ScrollReveal>
+        </ParallaxContentContainer>
 
-        {/* SECTION 12: CONTACT ACTIONS */}
-        <ScrollReveal direction="up" distance={25} delay={0.05} threshold={0.12}>
-          <div className="my-8 pt-6 border-t border-[#D6B477]/40">
-            <ContactButtons />
-          </div>
-        </ScrollReveal>
+        {/* SECTION 10: WHATSAPP DIRECT CONTACT */}
+        <ParallaxContentContainer
+          id="contact-section"
+          offsetRange={[12, -12]}
+          revealDistance={18}
+        >
+          <ContactButtons />
+        </ParallaxContentContainer>
 
-        {/* FOOTER & RE-OPEN CTA */}
-        <ScrollReveal direction="up" distance={20} delay={0.05} threshold={0.1}>
-          <footer className="mt-8 pt-6 border-t border-[#D6B477]/40 text-center space-y-3">
-            <div className="flex flex-wrap items-center justify-center gap-2.5">
-              <button
-                onClick={onReopenEnvelope}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] bg-white border border-[#D6B477]/60 shadow-2xs hover:border-[#8FB5D1] transition-all cursor-pointer"
-              >
-                <MailOpen className="w-3.5 h-3.5 text-[#5687AD]" />
-                <span>Replay Envelope</span>
-              </button>
+        {/* SECTION 11: FOOTER (Mentored by Love · #UgoAmaka26) */}
+        <ParallaxContentContainer
+          offsetRange={[8, -8]}
+          revealDistance={16}
+        >
+          <footer className="pt-8 pb-10 border-t border-[#D6B477]/40 text-center space-y-2">
+            <ScrollReveal direction="up" distance={18} duration={850}>
+              <p className="font-script-romantic text-4xl sm:text-5xl text-[#0E1B2E] tracking-wide">
+                Mentored by Love
+              </p>
+            </ScrollReveal>
 
-              <button
-                onClick={() => setShowProgramme(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] bg-white border border-[#D6B477]/60 shadow-2xs hover:border-[#8FB5D1] transition-all cursor-pointer"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-[#D6B477]" />
-                <span>Programme</span>
-              </button>
-
-              <button
-                onClick={() => setShowGiftModal(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] bg-white border border-[#D6B477]/60 shadow-2xs hover:border-[#8FB5D1] transition-all cursor-pointer"
-              >
-                <Gift className="w-3.5 h-3.5 text-[#8FB5D1]" />
-                <span>Registry</span>
-              </button>
-            </div>
-
-            <div className="text-[11px] text-[#0E1B2E]/60 font-serif-luxury space-y-0.5">
-              <p>Precious Uzoamaka Mark &amp; Ugochukwu Cyril Omeogu</p>
-              <p>Abuja, Nigeria · #UgoAmaka26</p>
-            </div>
+            <ScrollReveal direction="up" distance={12} delay={180} duration={800}>
+              <p className="font-display text-xs sm:text-sm tracking-[0.35em] font-extrabold text-[#D6B477] uppercase">
+                #UgoAmaka26
+              </p>
+            </ScrollReveal>
 
             {/* Discreet Admin Portal Link */}
-            <div className="pt-2">
+            <div className="pt-4">
               <button
                 onClick={onOpenAdmin}
                 type="button"
-                className="inline-flex items-center gap-1 text-[10px] tracking-wider uppercase text-[#0E1B2E]/50 hover:text-[#5687AD] transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 text-[9px] tracking-wider uppercase text-[#0E1B2E]/35 hover:text-[#5687AD] transition-colors cursor-pointer"
               >
-                <Shield className="w-3 h-3 text-[#D6B477]" />
+                <Shield className="w-2.5 h-2.5 text-[#D6B477]/60" />
                 <span>Admin Access</span>
               </button>
             </div>
           </footer>
-        </ScrollReveal>
-      </motion.article>
+        </ParallaxContentContainer>
+      </div>
 
       {/* Sticky Bottom Thumb Action Bar on Mobile */}
-      <div className="fixed bottom-3 inset-x-3 max-w-sm mx-auto z-40 sm:hidden">
+      <div className="fixed bottom-3 inset-x-3 max-w-sm mx-auto z-30 sm:hidden">
         <button
           onClick={scrollToRSVP}
           className="w-full h-12 rounded-2xl bg-[#0E1B2E] text-[#FAF7F2] font-display text-xs font-bold tracking-[0.2em] uppercase border border-[#D6B477] shadow-[0_8px_25px_rgba(14,27,46,0.35)] flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 text-[#D6B477]" />
           <span>RESPOND RSVP</span>
         </button>
       </div>
 
-      {/* Modals */}
-      <WeddingProgramme
-        isOpen={showProgramme}
-        onClose={() => setShowProgramme(false)}
+      {/* Navigation Drawer Menu */}
+      <NavigationDrawer
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        onOpenStory={() => setShowLoveStory(true)}
+        onOpenGifts={() => setShowGiftModal(true)}
+        onReopenEnvelope={onReopenEnvelope}
+        onOpenAdmin={onOpenAdmin}
       />
 
+      {/* Modals */}
       <LoveStoryModal
         isOpen={showLoveStory}
         onClose={() => setShowLoveStory(false)}

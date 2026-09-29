@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { playEnvelopeOpenSound, playWaxBreakSound } from '../lib/audio';
+import { playEnvelopeOpenSound, playWaxBreakSound, toggleBackgroundMusic, primeAudio } from '../lib/audio';
 
 interface EnvelopeProps {
   onOpenComplete: () => void;
@@ -18,49 +18,90 @@ const OPENING_POSTER_URL =
 
 export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
   const [stage, setStage] = useState<'idle' | 'opening' | 'flashing'>('idle');
-  const openingVideoRef = useRef<HTMLVideoElement>(null);
+  const [isOpeningVideoReady, setIsOpeningVideoReady] = useState(false);
+
   const loopVideoRef = useRef<HTMLVideoElement>(null);
+  const openingVideoRef = useRef<HTMLVideoElement>(null);
+  const hasTriggeredCompleteRef = useRef(false);
+
+  // Pre-buffer the opening video when the envelope mounts
+  useEffect(() => {
+    if (openingVideoRef.current) {
+      openingVideoRef.current.load();
+    }
+  }, []);
+
+  const finishOpening = () => {
+    if (hasTriggeredCompleteRef.current) return;
+    hasTriggeredCompleteRef.current = true;
+    onOpenComplete();
+  };
 
   const handleTapAnywhere = () => {
     if (stage !== 'idle') return;
     setStage('opening');
 
-    // Trigger authentic tactile audio
+    // Unlock and start background music synchronously within direct user gesture
+    primeAudio();
+    toggleBackgroundMusic(true);
+
+    // Trigger authentic tactile sound effects
     playWaxBreakSound();
     setTimeout(() => {
       playEnvelopeOpenSound();
     }, 120);
 
-    // Play the second video with the opening envelope and golden flash
+    // Play the opening envelope video
     if (openingVideoRef.current) {
       openingVideoRef.current.currentTime = 0;
-      openingVideoRef.current.muted = false;
+      openingVideoRef.current.muted = true; // Ensure mobile browsers allow instant play without block
       const playPromise = openingVideoRef.current.play();
+
       if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // If browser restricts unmuted audio, fallback to muted play
-          if (openingVideoRef.current) {
-            openingVideoRef.current.muted = true;
-            openingVideoRef.current.play().catch(() => {});
-          }
-        });
+        playPromise
+          .then(() => {
+            // Once playback confirmed started
+            setIsOpeningVideoReady(true);
+          })
+          .catch(() => {
+            // Fallback if autoplay restricted
+            setIsOpeningVideoReady(true);
+          });
       }
     }
 
-    // Pause the background loop video to save resources
-    if (loopVideoRef.current) {
-      loopVideoRef.current.pause();
-    }
-
-    // Trigger the white/golden flash transition as the video envelope vanishes
+    // Allow the envelope opening animation & letter reveal to play naturally
+    // Golden illumination blooms at 3.8s, smoothly transitioning to the invitation card
     setTimeout(() => {
       setStage('flashing');
-    }, 2700);
+    }, 3800);
 
-    // Complete transition to the invitation card
     setTimeout(() => {
-      onOpenComplete();
-    }, 3200);
+      finishOpening();
+    }, 4300);
+  };
+
+  // When opening video reaches its first rendered frame, pause the background loop video seamlessly
+  const handleOpeningTimeUpdate = () => {
+    if (!openingVideoRef.current) return;
+    const curTime = openingVideoRef.current.currentTime;
+
+    if (curTime > 0.08 && !isOpeningVideoReady) {
+      setIsOpeningVideoReady(true);
+      if (loopVideoRef.current) {
+        loopVideoRef.current.pause();
+      }
+    }
+
+    // Trigger golden flash right as the letter dissolves into light (~3.8s)
+    if (curTime >= 3.8 && stage === 'opening') {
+      setStage('flashing');
+    }
+
+    // Transition to the invitation when the video finishes or reaches 4.4s
+    if (curTime >= 4.4) {
+      finishOpening();
+    }
   };
 
   return (
@@ -77,7 +118,7 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
       className="fixed inset-0 w-full h-full cursor-pointer select-none overflow-hidden bg-black z-40"
       aria-label="Tap anywhere on the screen to open the wedding invitation"
     >
-      {/* 1. Looping Envelope Video (with subtle light sweep on golden emboss) */}
+      {/* 1. Looping Envelope Video: Remains visible until Video 2 is actively rendering */}
       <video
         ref={loopVideoRef}
         src={LOOPING_VIDEO_URL}
@@ -87,24 +128,27 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
         muted
         playsInline
         preload="auto"
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-          stage === 'idle' ? 'opacity-100 z-10' : 'opacity-0 z-0'
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+          isOpeningVideoReady ? 'opacity-0 z-0' : 'opacity-100 z-10'
         }`}
       />
 
-      {/* 2. Opening Envelope Video (opens up and vanishes into golden flash) */}
+      {/* 2. Opening Envelope Video: Seamlessly crossfades on top as the letter comes out */}
       <video
         ref={openingVideoRef}
         src={OPENING_VIDEO_URL}
         poster={OPENING_POSTER_URL}
+        muted
         playsInline
         preload="auto"
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
-          stage === 'opening' || stage === 'flashing' ? 'opacity-100 z-20' : 'opacity-0 z-0 pointer-events-none'
+        onTimeUpdate={handleOpeningTimeUpdate}
+        onEnded={finishOpening}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+          isOpeningVideoReady ? 'opacity-100 z-20' : 'opacity-0 z-0 pointer-events-none'
         }`}
       />
 
-      {/* Soft Text: "Tap anywhere to open" */}
+      {/* Soft Floating Prompt: "Tap anywhere to open" */}
       <AnimatePresence>
         {stage === 'idle' && (
           <motion.div
@@ -116,7 +160,7 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
             <motion.div
               animate={{ opacity: [0.75, 1, 0.75], y: [0, -3, 0] }}
               transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
-              className="px-6 py-2.5 rounded-full bg-black/45 backdrop-blur-md border border-[#D6B477]/40 shadow-2xl"
+              className="px-6 py-2.5 rounded-full bg-black/50 backdrop-blur-md border border-[#D6B477]/40 shadow-2xl"
             >
               <p className="font-serif-luxury text-xs sm:text-sm tracking-[0.25em] text-[#FAF7F2] uppercase font-semibold flex items-center gap-2.5">
                 <span className="text-[#D6B477] text-xs">✦</span>
@@ -128,21 +172,18 @@ export const Envelope: React.FC<EnvelopeProps> = ({ onOpenComplete }) => {
         )}
       </AnimatePresence>
 
-      {/* White / Golden Flash Overlay */}
+      {/* Warm Golden / Champagne Flash Transition directly as letter unfolds into hero */}
       <AnimatePresence>
         {stage === 'flashing' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: 'easeInOut' }}
-            className="fixed inset-0 bg-[#FFFDF7] z-50 pointer-events-none"
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 bg-[#FAF5EA] z-50 pointer-events-none"
           />
         )}
       </AnimatePresence>
     </div>
   );
 };
-
-
-

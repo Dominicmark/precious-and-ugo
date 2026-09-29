@@ -33,6 +33,24 @@
   .font-script {
     font-family: 'Alex Brush', cursive;
   }
+
+  .font-cursive {
+    font-family: 'Pinyon Script', 'Alex Brush', cursive;
+  }
+
+  .font-script-romantic {
+    font-family: 'Great Vibes', 'Allura', 'Alex Brush', cursive;
+  }
+}
+
+/* Vintage Antique Map & Parchment Texture */
+.vintage-parchment-texture {
+  background-color: #FAF5EA;
+  background-image:
+    radial-gradient(circle at 50% 10%, rgba(214, 180, 119, 0.18) 0%, transparent 60%),
+    radial-gradient(circle at 10% 50%, rgba(86, 135, 173, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(214, 180, 119, 0.15) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.035'/%3E%3C/svg%3E");
 }
 
 /* Luxury Paper Texture Background */

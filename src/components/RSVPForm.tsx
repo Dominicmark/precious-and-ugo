@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { submitRSVP } from '../lib/supabase';
 import { RSVPConfirmation } from './RSVPConfirmation';
 import { RSVPRecord } from '../types/rsvp';
-import { Send, Phone, Mail, Check, X, Users, HeartHandshake, Sparkles } from 'lucide-react';
+import { Send, Phone, Mail, Check, X, Users, HeartHandshake, Sparkles, MessageCircle } from 'lucide-react';
 import { fireWeddingConfetti } from '../lib/confetti';
 import { playCelebrationChime } from '../lib/audio';
 
@@ -25,8 +25,6 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
   const [guestCount, setGuestCount] = useState<number>(1);
   const [guestNames, setGuestNames] = useState('');
   const [dietaryOrNotes, setDietaryOrNotes] = useState('');
-  const [mealSelection, setMealSelection] = useState('Royal African Buffet');
-  const [songRequest, setSongRequest] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessAnimating, setIsSuccessAnimating] = useState(false);
@@ -63,14 +61,7 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Combine meal, song request, and notes
-      const notesCombined = [
-        dietaryOrNotes.trim(),
-        mealSelection ? `[Meal: ${mealSelection}]` : '',
-        songRequest ? `[Song Request: ${songRequest.trim()}]` : '',
-      ]
-        .filter(Boolean)
-        .join(' · ');
+      const notesCombined = dietaryOrNotes.trim();
 
       const res = await submitRSVP({
         full_name: fullName.trim(),
@@ -357,49 +348,18 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
                       />
                     </div>
                   </div>
-
-                  {/* Meal Selection */}
-                  <div>
-                    <label className="block text-xs font-bold tracking-wider text-[#0E1B2E] uppercase mb-1">
-                      Culinary &amp; Banquet Preference
-                    </label>
-                    <select
-                      value={mealSelection}
-                      onChange={(e) => setMealSelection(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl border border-[#D6B477]/70 bg-[#FAF7F2]/60 text-xs text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#8FB5D1] font-medium"
-                    >
-                      <option value="Royal African Buffet">Royal African Buffet (Jollof, Fried Rice, Pounded Yam, Assorted)</option>
-                      <option value="Continental Haute Cuisine">Continental Haute Cuisine</option>
-                      <option value="Halal Delights">Halal Delights</option>
-                      <option value="Vegetarian Gourmet">Vegetarian Gourmet</option>
-                    </select>
-                  </div>
-
-                  {/* Song Request to DJ */}
-                  <div>
-                    <label className="block text-xs font-bold tracking-wider text-[#0E1B2E] uppercase mb-1">
-                      Dance Floor Song Request (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Kizz Daniel - Odoyewu, Flavour, or Burna Boy"
-                      value={songRequest}
-                      onChange={(e) => setSongRequest(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-[#D6B477]/70 bg-[#FAF7F2]/60 text-xs text-[#0E1B2E] placeholder-[#0E1B2E]/40 focus:outline-none focus:ring-2 focus:ring-[#8FB5D1] transition-all"
-                    />
-                  </div>
                 </motion.div>
               )}
 
 
-              {/* Dietary / Warm Note to the Couple */}
+              {/* Warm Wishes or Congratulatory Note to the Couple */}
               <div>
                 <label className="block text-xs font-bold tracking-wider text-[#0E1B2E] uppercase mb-1">
-                  Warm Wishes or Dietary Preferences (Optional)
+                  Warm Wishes or Congratulatory Note (Optional)
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Leave a heartfelt congratulatory message or dietary notes..."
+                  placeholder="Leave a heartfelt congratulatory message for the couple..."
                   value={dietaryOrNotes}
                   onChange={(e) => setDietaryOrNotes(e.target.value)}
                   className="w-full px-3.5 py-2 rounded-xl border border-[#D6B477]/70 bg-[#FAF7F2]/60 text-xs text-[#0E1B2E] placeholder-[#0E1B2E]/40 focus:outline-none focus:ring-2 focus:ring-[#8FB5D1] transition-all resize-none"
@@ -450,22 +410,19 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
             {/* Contact Details Footer */}
             <div className="mt-5 pt-4 border-t border-[#D6B477]/40 text-center">
               <p className="font-serif-luxury text-xs text-[#0E1B2E]/80 font-medium mb-1.5">
-                Questions or special accommodations? Contact our wedding committee:
+                Questions or special accommodations contact:
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-[#5687AD]">
+              <div className="flex items-center justify-center">
                 <a
-                  href="tel:+2348030000000"
-                  className="inline-flex items-center gap-1 hover:text-[#0E1B2E] transition-colors"
+                  href={`https://wa.me/2348030000000?text=${encodeURIComponent(
+                    'Hello Precious & Ugochukwu! I have a question regarding the wedding celebration (#UgoAmaka26).'
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#D6B477]/60 text-xs font-semibold text-[#0E1B2E] hover:text-[#25D366] hover:border-[#25D366] shadow-2xs transition-all"
                 >
-                  <Phone className="w-3 h-3 text-[#D6B477]" />
-                  <span>+234 803 000 0000</span>
-                </a>
-                <a
-                  href="mailto:ugoamaka26@gmail.com"
-                  className="inline-flex items-center gap-1 hover:text-[#0E1B2E] transition-colors"
-                >
-                  <Mail className="w-3 h-3 text-[#D6B477]" />
-                  <span>ugoamaka26@gmail.com</span>
+                  <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
+                  <span>WhatsApp: +234 803 000 0000</span>
                 </a>
               </div>
             </div>

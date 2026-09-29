@@ -1,6 +1,6 @@
 /**
  * Wedding Countdown Calculator
- * Target: 13 November 2026 at 10:00 AM (Africa/Lagos, UTC+1)
+ * Target: 13 November 2026 at 4:00 PM (Africa/Lagos, UTC+1)
  */
 
 export interface CountdownTime {
@@ -12,8 +12,8 @@ export interface CountdownTime {
   totalSeconds: number;
 }
 
-// 13 November 2026, 10:00:00 Africa/Lagos (UTC+1)
-export const WEDDING_DATE = new Date('2026-11-13T10:00:00+01:00');
+// 13 November 2026, 16:00:00 (4:00 PM) Africa/Lagos (UTC+1)
+export const WEDDING_DATE = new Date('2026-11-13T16:00:00+01:00');
 export const RSVP_DEADLINE = new Date('2026-10-15T23:59:59+01:00');
 
 export function calculateTimeRemaining(targetDate: Date = WEDDING_DATE): CountdownTime {

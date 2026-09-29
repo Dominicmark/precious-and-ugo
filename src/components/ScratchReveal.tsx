@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { fireWeddingConfetti } from '../lib/confetti';
 import { playCelebrationChime, playScratchSwoosh } from '../lib/audio';
 import { Sparkles, CheckCircle2, Wand2 } from 'lucide-react';
+import { ScrollReveal } from './ScrollReveal';
 
 interface ScratchRevealProps {
   onRevealed?: () => void;
@@ -265,24 +266,24 @@ export const ScratchReveal: React.FC<ScratchRevealProps> = ({ onRevealed }) => {
   return (
     <div className="w-full flex flex-col items-center">
       {/* Section Header */}
-      <div className="text-center mb-3">
+      <ScrollReveal direction="up" distance={16} duration={700} className="text-center mb-3">
         <p className="font-serif-luxury text-xs tracking-[0.25em] text-[#5687AD] uppercase font-semibold">
           Mark Your Calendar
         </p>
         <h3 className="font-display text-base sm:text-lg tracking-wider text-[#0E1B2E] font-bold mt-0.5">
           A SPECIAL DATE AWAITS
         </h3>
-      </div>
+      </ScrollReveal>
 
       {/* Scratch Box Frame */}
       <div
         ref={containerRef}
-        className="relative w-full max-w-[340px] sm:max-w-[380px] h-[155px] rounded-2xl overflow-hidden shadow-2xl border-2 border-[#D6B477] bg-[#FAF7F2] select-none"
+        className="relative w-full max-w-[340px] sm:max-w-[380px] h-[175px] sm:h-[185px] rounded-2xl overflow-hidden shadow-2xl border-2 border-[#D6B477] bg-[#FAF7F2] select-none"
         style={{
           boxShadow: '0 14px 35px -8px rgba(14, 27, 46, 0.28), inset 0 0 20px rgba(214, 180, 119, 0.25)',
         }}
       >
-        {/* UNDERNEATH LAYER: The Revealed Date */}
+        {/* UNDERNEATH LAYER: The Revealed Date and Time */}
         <div className="absolute inset-0 flex flex-col items-center justify-center p-3 select-none paper-texture">
           {/* Subtle ornate inner border */}
           <div className="absolute inset-2 border border-[#D6B477]/50 rounded-xl pointer-events-none" />
@@ -291,7 +292,7 @@ export const ScratchReveal: React.FC<ScratchRevealProps> = ({ onRevealed }) => {
             animate={
               isRevealed
                 ? {
-                    scale: [1, 1.06, 1],
+                    scale: [1, 1.05, 1],
                     filter: [
                       'drop-shadow(0 0 0px #D6B477)',
                       'drop-shadow(0 0 16px rgba(214,180,119,0.9))',
@@ -301,21 +302,27 @@ export const ScratchReveal: React.FC<ScratchRevealProps> = ({ onRevealed }) => {
                 : {}
             }
             transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="text-center z-0"
+            className="text-center z-0 px-2"
           >
-            <span className="font-serif-luxury text-xs tracking-[0.3em] text-[#5687AD] font-semibold uppercase block">
+            <span className="font-serif-luxury text-[11px] sm:text-xs tracking-[0.3em] text-[#5687AD] font-semibold uppercase block">
               Friday
             </span>
-            <h4 className="font-display text-2xl sm:text-3xl font-extrabold text-[#0E1B2E] tracking-widest my-0.5">
-              13 NOVEMBER
+            <h4 className="font-display text-xl sm:text-2xl font-extrabold text-[#0E1B2E] tracking-widest my-0.5">
+              13 NOVEMBER 2026
             </h4>
-            <div className="flex items-center justify-center gap-2">
-              <span className="w-6 h-[1px] bg-[#D6B477]" />
-              <span className="font-display text-base font-bold text-[#5687AD] tracking-[0.25em]">
-                2026
+
+            {/* Revealed Nuptial Time */}
+            <div className="flex items-center justify-center gap-2 my-1">
+              <span className="w-5 h-[1px] bg-[#D6B477]" />
+              <span className="font-display text-xs sm:text-sm font-bold text-[#5687AD] tracking-[0.2em] uppercase">
+                4:00 PM WAT
               </span>
-              <span className="w-6 h-[1px] bg-[#D6B477]" />
+              <span className="w-5 h-[1px] bg-[#D6B477]" />
             </div>
+
+            <span className="font-serif-luxury text-[10px] tracking-[0.15em] text-[#0E1B2E]/70 font-semibold uppercase block">
+              Strictly by Invitation
+            </span>
           </motion.div>
 
           {/* Celebratory badge tag when fully revealed */}
@@ -327,7 +334,7 @@ export const ScratchReveal: React.FC<ScratchRevealProps> = ({ onRevealed }) => {
               className="mt-1 flex items-center gap-1 text-[10px] font-semibold tracking-wider text-[#5687AD] uppercase"
             >
               <CheckCircle2 className="w-3.5 h-3.5 text-[#5687AD]" />
-              <span>Date Revealed!</span>
+              <span>Date &amp; Time Revealed!</span>
             </motion.div>
           )}
         </div>

@@ -7,14 +7,41 @@ interface WeddingProgrammeProps {
 }
 
 const PROGRAMME_ITEMS = [
-  { time: '10:00 AM', title: 'Arrival of Distinguished Guests & Red Carpet', desc: 'Welcome cocktails, seating protocol, and ambient string quartet.' },
-  { time: '10:45 AM', title: 'Processional Entry of Bridal Train & Royal Parents', desc: 'Introduction of esteemed family dignitaries and bridal party.' },
-  { time: '11:15 AM', title: 'Grand Triumphant Entrance of the Couple', desc: 'Welcome Mr. & Mrs. Ugochukwu Cyril Omeogu to thunderous cheers!' },
-  { time: '11:45 AM', title: 'Opening Prayers & Welcome Address', desc: 'Blessing of the solemn union and address by the Chairman.' },
-  { time: '12:15 PM', title: 'Cutting of the Nuptial Cake & Champagne Toast', desc: 'Symbolic sweet beginning, toasts to lasting health and joy.' },
-  { time: '01:00 PM', title: 'Grand Luncheon Banquet & Musical Serenade', desc: 'Exquisite African and continental culinary buffet & live orchestra.' },
-  { time: '02:00 PM', title: "The Couple's First Dance & Family Rhythms", desc: 'Romantic couple dance followed by traditional celebratory dances.' },
-  { time: '03:30 PM', title: 'Vote of Thanks & Unforgettable After-Party', desc: 'Expressions of profound gratitude and vibrant dance floor celebration.' },
+  {
+    time: '04:00 PM',
+    title: 'Arrival of Distinguished Guests',
+    desc: 'Welcome reception, guest registration, and ambient musical prelude.',
+  },
+  {
+    time: '04:30 PM',
+    title: 'Processional Entry of Bridal Train & Parents',
+    desc: 'Formal introduction of esteemed family dignitaries and the bridal party.',
+  },
+  {
+    time: '05:00 PM',
+    title: 'Grand Triumphant Entrance of the Couple',
+    desc: 'Welcoming Mr. & Mrs. Ugochukwu Cyril Omeogu to joyous fanfare and cheers!',
+  },
+  {
+    time: '05:30 PM',
+    title: 'Opening Prayers & Solemn Blessings',
+    desc: 'Dedication of the holy union, hymns, and Chairman’s opening address.',
+  },
+  {
+    time: '06:00 PM',
+    title: 'Cutting of the Nuptial Cake & Champagne Toast',
+    desc: 'Symbolic sweet beginning, accompanied by royal toasts to lasting joy and health.',
+  },
+  {
+    time: '06:45 PM',
+    title: "The Couple's First Dance & Family Rhythms",
+    desc: 'Intimate first dance for the newlyweds followed by vibrant traditional celebrations.',
+  },
+  {
+    time: '07:45 PM',
+    title: 'Vote of Thanks & Nuptial Celebration',
+    desc: 'Expressions of profound gratitude and music celebration into the evening.',
+  },
 ];
 
 export const WeddingProgramme: React.FC<WeddingProgrammeProps> = ({ isOpen, onClose }) => {
@@ -41,7 +68,7 @@ export const WeddingProgramme: React.FC<WeddingProgrammeProps> = ({ isOpen, onCl
             WEDDING PROGRAMME
           </h3>
           <p className="font-serif-luxury text-xs text-[#5687AD] font-semibold tracking-widest uppercase mt-0.5">
-            Friday, 13 November 2026 · Tee Scee Event Center
+            Friday, 13 November 2026 · 4:00 PM WAT
           </p>
         </div>
 

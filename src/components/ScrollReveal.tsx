@@ -1,74 +1,71 @@
 import React from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
 
-interface ScrollRevealProps {
+export interface ScrollRevealProps {
   children: React.ReactNode;
   className?: string;
-  delay?: number;
   direction?: 'up' | 'down' | 'left' | 'right' | 'none';
   distance?: number;
+  delay?: number;
   duration?: number;
   threshold?: number;
+  rootMargin?: string;
+  triggerOnce?: boolean;
+  as?: React.ElementType;
+  id?: string;
 }
 
 export const ScrollReveal: React.FC<ScrollRevealProps> = ({
   children,
   className = '',
-  delay = 0,
   direction = 'up',
-  distance = 32,
-  duration = 0.7,
-  threshold = 0.15,
+  distance = 24,
+  delay = 0,
+  duration = 750,
+  threshold = 0.12,
+  rootMargin = '0px 0px -40px 0px',
+  triggerOnce = true,
+  as: Component = 'div',
+  id,
 }) => {
-  const shouldReduceMotion = useReducedMotion();
+  const [ref, isIntersecting] = useIntersectionObserver<HTMLElement>({
+    threshold,
+    rootMargin,
+    triggerOnce,
+  });
 
-  if (shouldReduceMotion) {
-    return <div className={className}>{children}</div>;
-  }
-
-  const getInitialPosition = () => {
+  // Calculate transform according to direction
+  const getTransform = () => {
+    if (isIntersecting || direction === 'none') return 'translate3d(0, 0, 0)';
     switch (direction) {
       case 'up':
-        return { y: distance, x: 0 };
+        return `translate3d(0, ${distance}px, 0)`;
       case 'down':
-        return { y: -distance, x: 0 };
+        return `translate3d(0, -${distance}px, 0)`;
       case 'left':
-        return { x: distance, y: 0 };
+        return `translate3d(${distance}px, 0, 0)`;
       case 'right':
-        return { x: -distance, y: 0 };
+        return `translate3d(-${distance}px, 0, 0)`;
       default:
-        return { x: 0, y: 0 };
+        return 'translate3d(0, 0, 0)';
     }
   };
 
-  const initialOffset = getInitialPosition();
-
   return (
-    <motion.div
-      initial={{
-        opacity: 0,
-        ...initialOffset,
-        scale: direction === 'none' ? 0.96 : 0.99,
+    <Component
+      id={id}
+      ref={ref}
+      className={`will-change-[opacity,transform] ${className}`}
+      style={{
+        opacity: isIntersecting ? 1 : 0,
+        transform: getTransform(),
+        transitionProperty: 'opacity, transform',
+        transitionDuration: `${duration}ms`,
+        transitionDelay: `${delay}ms`,
+        transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
       }}
-      whileInView={{
-        opacity: 1,
-        x: 0,
-        y: 0,
-        scale: 1,
-      }}
-      viewport={{
-        once: true,
-        amount: threshold,
-        margin: '0px 0px -40px 0px',
-      }}
-      transition={{
-        duration,
-        delay,
-        ease: [0.22, 1, 0.36, 1], // Custom smooth luxury easing
-      }}
-      className={className}
     >
       {children}
-    </motion.div>
+    </Component>
   );
 };

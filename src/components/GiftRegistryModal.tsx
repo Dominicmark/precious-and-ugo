@@ -37,10 +37,10 @@ export const GiftRegistryModal: React.FC<GiftRegistryModalProps> = ({ isOpen, on
         <div className="text-center mb-4">
           <div className="inline-flex items-center gap-1.5 text-[#5687AD] text-xs font-serif-luxury font-bold uppercase tracking-[0.25em] mb-1">
             <Gift className="w-3.5 h-3.5 text-[#8FB5D1]" />
-            <span>Gifts &amp; Blessings</span>
+            <span>Contributions &amp; Registry</span>
           </div>
-          <h3 className="font-display text-xl font-bold text-[#0E1B2E] tracking-wider uppercase">
-            REGISTRY &amp; WISHES
+          <h3 className="font-display text-xl sm:text-2xl font-extrabold text-[#0E1B2E] tracking-wider uppercase">
+            GIFTS &amp; BLESSINGS
           </h3>
         </div>
 
