@@ -38,17 +38,17 @@ export const HeroCinematicVideo: React.FC<HeroCinematicVideoProps> = () => {
         preload="auto"
         className="absolute inset-0 w-full h-full object-cover object-[50%_35%] pointer-events-none transition-opacity duration-700"
         style={{
-          filter: 'brightness(0.82) contrast(1.05)',
+          filter: 'brightness(0.85) contrast(1.03)',
         }}
       />
 
-      {/* 2. Soft Darkening Vignette for Supreme White Text Legibility */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/15 to-transparent pointer-events-none" />
+      {/* 2. Delicate 20% Vignette: Soft, non-intrusive, no heavy shadow band */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-transparent pointer-events-none" />
 
       {/* 3. Bottom Smooth Fade-Out directly to the Vintage Parchment Background (#FAF5EA) */}
       <div className="absolute inset-x-0 bottom-0 h-44 sm:h-56 bg-gradient-to-t from-[#FAF5EA] via-[#FAF5EA]/85 to-transparent pointer-events-none" />
 
-      {/* 4. Top Sky Area: Couple Names with Soft, Subtle Shadow (Reduced by 40%) */}
+      {/* 4. Top Sky Area: Couple Names with Ultra-Light 20% Shadow for Pristine Elegance */}
       <div className="relative z-10 w-full pt-16 sm:pt-20 px-4 flex flex-col items-center text-center">
         <div className="space-y-1 sm:space-y-2 max-w-lg mx-auto">
           {/* Couple Names in Bolder Wedding Calligraphy (Soft Fade In) */}
@@ -62,7 +62,7 @@ export const HeroCinematicVideo: React.FC<HeroCinematicVideoProps> = () => {
               className="font-script-romantic-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wide leading-tight"
               style={{
                 textShadow:
-                  '0 1px 6px rgba(0,0,0,0.36), 0 2px 11px rgba(0,0,0,0.29), 0 0 7px rgba(214,180,119,0.14)',
+                  '0 1px 4px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.15), 0 0 5px rgba(214,180,119,0.10)',
               }}
             >
               Precious Uzoamaka
@@ -72,7 +72,7 @@ export const HeroCinematicVideo: React.FC<HeroCinematicVideoProps> = () => {
               className="font-script-romantic-bold text-3xl sm:text-4xl md:text-5xl text-[#ECC880] leading-none py-0.5 sm:py-1"
               style={{
                 textShadow:
-                  '0 1px 4px rgba(0,0,0,0.34), 0 0 6px rgba(214,180,119,0.21)',
+                  '0 1px 3px rgba(0,0,0,0.20), 0 0 5px rgba(214,180,119,0.15)',
               }}
             >
               &amp;
@@ -82,7 +82,7 @@ export const HeroCinematicVideo: React.FC<HeroCinematicVideoProps> = () => {
               className="font-script-romantic-bold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wide leading-tight"
               style={{
                 textShadow:
-                  '0 1px 6px rgba(0,0,0,0.36), 0 2px 11px rgba(0,0,0,0.29), 0 0 7px rgba(214,180,119,0.14)',
+                  '0 1px 4px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.15), 0 0 5px rgba(214,180,119,0.10)',
               }}
             >
               Ugochukwu Omeogu
@@ -99,7 +99,7 @@ export const HeroCinematicVideo: React.FC<HeroCinematicVideoProps> = () => {
             <p
               className="font-display text-xs sm:text-sm tracking-[0.25em] font-bold text-white/95 uppercase leading-relaxed max-w-xs sm:max-w-md mx-auto"
               style={{
-                textShadow: '0 1px 4px rgba(0,0,0,0.58), 0 1px 2px rgba(0,0,0,0.60)',
+                textShadow: '0 1px 2px rgba(0,0,0,0.20)',
               }}
             >
               JOYFULLY INVITE YOU TO THEIR WEDDING CEREMONY/ RECEPTION
