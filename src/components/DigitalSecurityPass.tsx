@@ -353,17 +353,17 @@ export const DigitalSecurityPass: React.FC<DigitalSecurityPassProps> = ({
             </div>
 
             {/* Card Graphic Container with Gold Border */}
-            <div className="relative rounded-xl overflow-hidden border-2 border-[#D6B477]/80 shadow-2xl bg-black group min-h-[320px] flex items-center justify-center">
+            <div className="relative rounded-xl overflow-hidden border-2 border-[#D6B477] shadow-2xl bg-[#F6EFE6] group min-h-[320px] flex items-center justify-center p-1.5 sm:p-2">
               {isGeneratingJpeg && !personalizedCardJpeg ? (
-                <div className="py-16 flex flex-col items-center justify-center gap-3 text-white/70">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#ECC880]" />
-                  <span className="text-xs font-medium">Generating your personalized invitation card JPEG...</span>
+                <div className="py-16 flex flex-col items-center justify-center gap-3 text-[#0E1B2E]">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#9C7A35]" />
+                  <span className="text-xs font-semibold text-[#0E1B2E]">Crafting your floral cream invitation card...</span>
                 </div>
               ) : (
                 <img
                   src={personalizedCardJpeg || cardUrl}
                   alt={`Official Wedding Invitation Card for ${record.full_name}`}
-                  className="w-full h-auto max-h-[480px] object-contain mx-auto transition-transform duration-300 group-hover:scale-[1.01]"
+                  className="w-full h-auto max-h-[500px] object-contain mx-auto rounded-lg shadow-md transition-transform duration-300 group-hover:scale-[1.01]"
                 />
               )}
 
