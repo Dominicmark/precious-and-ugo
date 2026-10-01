@@ -208,7 +208,7 @@ Protocol Helpline: +234 703 431 0865
                 </tr>
                 <tr>
                   <td style="font-size: 11px; font-weight: bold; color: #8A6D3B; text-transform: uppercase;">Venue</td>
-                  <td style="font-size: 13px; font-weight: bold; color: #0E1B2E;">Tee Scee Event Center, 6 Area 3, Garki, Abuja, Nigeria</td>
+                  <td style="font-size: 13px; font-weight: bold; color: #0E1B2E;">Tee s Cee Event Center, 6, Faskari Street, Area 3, Garki Abuja</td>
                 </tr>
                 <tr>
                   <td style="font-size: 11px; font-weight: bold; color: #8A6D3B; text-transform: uppercase;">Access</td>
@@ -262,7 +262,7 @@ EVENT DETAILS:
 - Verification Code: ${guest.reference_code}
 - Date: Friday, 13 November 2026
 - Time: 4:00 PM WAT (Please arrive by 3:45 PM)
-- Venue: Tee Scee Event Center, 6 Area 3, Garki, Abuja
+- Venue: Tee s Cee Event Center, 6, Faskari Street, Area 3, Garki Abuja
 - Reserved Access: ${seats} Seat(s)
 - Table: ${tableAssignment}
 - Dress Code: Strictly Formal Western Black-Tie (No traditional attire)

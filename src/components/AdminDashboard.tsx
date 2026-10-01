@@ -4,6 +4,7 @@ import {
   updateRSVPStatus,
   calculateRSVPStats,
   exportRSVPsToCSV,
+  resetRSVPList,
 } from '../lib/supabase';
 import { RSVPRecord, RSVPStats, RSVPApprovalStatus, GuestRelationship } from '../types/rsvp';
 import { DigitalSecurityPass } from './DigitalSecurityPass';
@@ -119,6 +120,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
     }
   };
 
+  const handleResetGuestList = () => {
+    const refreshed = resetRSVPList();
+    setRecords(refreshed);
+    showToast('Guest list refreshed! (Includes Dr. Mrs Omeogu, PU-2330)');
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       loadRecords();
@@ -188,7 +195,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
     const cleanPhone = guest.phone.replace(/\D/g, '');
     const seats = guest.allocated_seats || guest.guest_count || 1;
     const tableText = guest.table_assignment ? ` at ${guest.table_assignment}` : '';
-    const message = `Dear ${guest.full_name},\n\nPrecious & Ugochukwu joyfully confirm your ${seats} reserved seat(s)${tableText} for their wedding on Friday, 13 November 2026.\n\n🎟️ Ref Code: ${guest.reference_code}\n📍 Venue: Tee Scee Event Center, 6 Area 3, Garki, Abuja\n⏰ Time: 10:00 AM Prompt\n👔 Dress Code: Strictly Black-Tie Formal Western Attire (No Traditional Attire)\n\nPlease keep your reference code handy for gate verification. We look forward to celebrating with you!\n\n#UgoAmaka26`;
+    const message = `Dear ${guest.full_name},\n\nPrecious & Ugochukwu joyfully confirm your ${seats} reserved seat(s)${tableText} for their wedding on Friday, 13 November 2026.\n\n🎟️ Ref Code: ${guest.reference_code}\n📍 Venue: Tee s Cee Event Center, 6, Faskari Street, Area 3, Garki Abuja\n⏰ Time: 10:00 AM Prompt\n👔 Dress Code: Strictly Black-Tie Formal Western Attire (No Traditional Attire)\n\nPlease keep your reference code handy for gate verification. We look forward to celebrating with you!\n\n#UgoAmaka26`;
     
     const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -213,6 +220,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
         relationship: manualRelationship,
         table_assignment: manualTable.trim(),
         dietary_or_notes: '[Added via Protocol Desk]',
+        allowDuplicate: true,
       });
       showToast(`Added ${manualName} to guest registry`);
       setShowAddGuestModal(false);
@@ -406,6 +414,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
               </button>
 
               <button
+                onClick={handleResetGuestList}
+                className="px-2.5 py-1.5 rounded-lg bg-[#ECC880]/15 hover:bg-[#ECC880]/25 text-[#ECC880] text-[11px] font-bold transition-all flex items-center gap-1 border border-[#D6B477]/40 cursor-pointer"
+                title="Reset demo guest list to initial clean state (includes Dr. Mrs Omeogu)"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Reset Guest List</span>
+              </button>
+
+              <button
                 onClick={loadRecords}
                 disabled={isLoading}
                 className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
@@ -484,6 +501,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
                     >
                       <Download className="w-4 h-4 text-[#ECC880]" />
                       <span>Download Bouncer List (CSV)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMobileActionMenu(false);
+                        handleResetGuestList();
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-2.5 cursor-pointer text-[#ECC880]"
+                    >
+                      <RefreshCw className="w-4 h-4 text-[#ECC880]" />
+                      <span>Reset Demo Guest List</span>
                     </button>
 
                     <button

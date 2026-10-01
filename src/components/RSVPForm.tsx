@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { submitRSVP } from '../lib/supabase';
 import { RSVPConfirmation } from './RSVPConfirmation';
 import { GuestStatusLookupModal } from './GuestStatusLookupModal';
+import { DigitalSecurityPass } from './DigitalSecurityPass';
 import { RSVPRecord, GuestRelationship } from '../types/rsvp';
 import {
   Send,
@@ -16,6 +17,11 @@ import {
   MessageCircle,
   ShieldAlert,
   Search,
+  ShieldCheck,
+  XCircle,
+  Clock,
+  AlertCircle,
+  Copy,
 } from 'lucide-react';
 import { fireWeddingConfetti } from '../lib/confetti';
 import { playCelebrationChime } from '../lib/audio';
@@ -45,6 +51,12 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
   const [submittedData, setSubmittedData] = useState<RSVPRecord | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showStatusLookup, setShowStatusLookup] = useState(false);
+  const [duplicateInfo, setDuplicateInfo] = useState<{
+    record: RSVPRecord;
+    field: 'email' | 'phone' | 'both';
+  } | null>(null);
+  const [showPassModal, setShowPassModal] = useState(false);
+  const [copiedRef, setCopiedRef] = useState(false);
 
   // Check URL params to prefill guest name
   React.useEffect(() => {
@@ -58,6 +70,7 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setDuplicateInfo(null);
 
     // Form validation
     if (!fullName.trim()) {
@@ -86,6 +99,16 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
         relationship,
         dietary_or_notes: dietaryOrNotes.trim(),
       });
+
+      // Handle duplicate email or phone number
+      if (res.isDuplicate && res.existingRecord) {
+        setDuplicateInfo({
+          record: res.existingRecord,
+          field: res.duplicateField || 'email',
+        });
+        setErrorMsg(null);
+        return;
+      }
 
       if (res.success && res.data) {
         const savedRecord = res.data;
@@ -126,6 +149,8 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
 
   const handleReset = () => {
     setSubmittedData(null);
+    setDuplicateInfo(null);
+    setErrorMsg(null);
     setFullName('');
     setPhone('');
     setEmail('');
@@ -173,6 +198,133 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
             </button>
           </div>
         </div>
+
+        {/* DUPLICATE REGISTRATION NOTIFICATION BANNER */}
+        {duplicateInfo && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className={`mb-5 p-4 sm:p-5 rounded-2xl border-2 text-left space-y-3.5 shadow-md ${
+              duplicateInfo.record.status === 'approved'
+                ? 'bg-gradient-to-b from-emerald-50 to-white border-emerald-400 text-emerald-950'
+                : duplicateInfo.record.status === 'declined'
+                ? 'bg-gradient-to-b from-red-50 to-white border-red-300 text-red-950'
+                : 'bg-gradient-to-b from-amber-50 to-white border-amber-300 text-amber-950'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                {duplicateInfo.record.status === 'approved' ? (
+                  <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                ) : duplicateInfo.record.status === 'declined' ? (
+                  <XCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                ) : (
+                  <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <h4 className="font-display text-sm font-bold uppercase tracking-wider text-[#0E1B2E]">
+                    {duplicateInfo.field === 'email'
+                      ? 'Email Address Already Used'
+                      : duplicateInfo.field === 'phone'
+                      ? 'Phone Number Already Used'
+                      : 'Email & Phone Already Used'}
+                  </h4>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    An RSVP has already been submitted using{' '}
+                    <strong className="text-[#0E1B2E]">
+                      {duplicateInfo.field === 'email'
+                        ? duplicateInfo.record.email
+                        : duplicateInfo.field === 'phone'
+                        ? duplicateInfo.record.phone
+                        : `${duplicateInfo.record.email} / ${duplicateInfo.record.phone}`}
+                    </strong>{' '}
+                    for guest <strong className="text-[#0E1B2E]">{duplicateInfo.record.full_name}</strong>.
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <span
+                className={`px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider border shadow-xs shrink-0 ${
+                  duplicateInfo.record.status === 'approved'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : duplicateInfo.record.status === 'declined'
+                    ? 'bg-red-100 text-red-800 border-red-300'
+                    : 'bg-amber-100 text-amber-900 border-amber-300'
+                }`}
+              >
+                {duplicateInfo.record.status === 'approved'
+                  ? 'RSVP: Approved'
+                  : duplicateInfo.record.status === 'declined'
+                  ? 'RSVP: Rejected'
+                  : 'RSVP: Under Review'}
+              </span>
+            </div>
+
+            {/* Status Details */}
+            <div className="p-3 rounded-xl bg-white/80 border border-black/10 text-xs space-y-1.5">
+              {duplicateInfo.record.status === 'approved' ? (
+                <p className="text-emerald-900 font-medium">
+                  🎉 Your reservation is <strong>Approved &amp; Confirmed</strong> for{' '}
+                  <strong>{duplicateInfo.record.allocated_seats || duplicateInfo.record.guest_count || 1} reserved seat(s)</strong>.
+                </p>
+              ) : duplicateInfo.record.status === 'declined' ? (
+                <p className="text-red-900 font-medium">
+                  This RSVP was recorded as <strong>Rejected / Declined</strong>. If you would like to request attendance or made an error, please contact the protocol desk directly.
+                </p>
+              ) : (
+                <p className="text-amber-900 font-medium">
+                  Your reservation request is currently <strong>Under Protocol Review</strong>. Due to our strictly curated 100-guest capacity, you will receive an official notification email once reviewed.
+                </p>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-black/5 text-[11px] text-gray-500 font-mono">
+                <div className="flex items-center gap-1.5">
+                  <span>Reference Code:</span>
+                  <span className="font-bold text-[#0E1B2E] bg-[#FAF5EA] px-2 py-0.5 rounded border border-[#D6B477]/60">
+                    {duplicateInfo.record.reference_code}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(duplicateInfo.record.reference_code);
+                      setCopiedRef(true);
+                      setTimeout(() => setCopiedRef(false), 2000);
+                    }}
+                    className="p-1 hover:bg-gray-200 rounded text-gray-600 transition-colors cursor-pointer"
+                    title="Copy Reference Code"
+                  >
+                    {copiedRef ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+
+                <span>Date: 13 Nov 2026</span>
+              </div>
+            </div>
+
+            {/* Actions for duplicate */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {duplicateInfo.record.status === 'approved' && (
+                <button
+                  type="button"
+                  onClick={() => setShowPassModal(true)}
+                  className="px-4 py-2 rounded-xl bg-[#0E1B2E] text-[#ECC880] text-xs font-bold uppercase tracking-wider shadow-sm hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#ECC880]" />
+                  <span>View Official Security Pass</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setDuplicateInfo(null)}
+                className="px-3.5 py-2 rounded-xl bg-white border border-gray-300 text-gray-700 hover:text-black hover:border-gray-400 text-xs font-semibold transition-all cursor-pointer"
+              >
+                Dismiss / Enter Different Email
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {errorMsg && (
           <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium text-center">
@@ -390,6 +542,14 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
         isOpen={showStatusLookup}
         onClose={() => setShowStatusLookup(false)}
       />
+
+      {/* Approved Digital Pass Modal if viewed from duplicate alert */}
+      {showPassModal && duplicateInfo?.record && (
+        <DigitalSecurityPass
+          record={duplicateInfo.record}
+          onClose={() => setShowPassModal(false)}
+        />
+      )}
     </>
   );
 };

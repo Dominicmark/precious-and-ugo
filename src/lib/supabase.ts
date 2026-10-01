@@ -129,8 +129,35 @@ const SEED_RSVPS: RSVPRecord[] = [
     dietary_or_notes: 'Can not wait to dance with the bride!',
     wedding_slug: 'ugoamaka26',
     created_at: '2026-09-30T15:20:00Z',
-  }
+  },
+  {
+    id: 'seed-7',
+    reference_code: 'PU-2330',
+    full_name: 'Dr. Mrs Omeogu',
+    phone: '+234 803 233 0000',
+    email: 'omeogu.drmrs@example.ng',
+    attendance: 'accepted',
+    status: 'approved',
+    guest_count: 1,
+    allocated_seats: 1,
+    relationship: "Groom's Family / Guest",
+    table_assignment: 'VIP Protocol Table',
+    guest_names: 'Dr. Mrs Omeogu',
+    dietary_or_notes: 'VIP Protocol Table Reservation',
+    wedding_slug: 'ugoamaka26',
+    created_at: '2026-09-22T08:00:00Z',
+    reviewed_at: '2026-09-22T09:30:00Z',
+  },
 ];
+
+export function resetRSVPList(): RSVPRecord[] {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_RSVPS));
+  } catch (err) {
+    console.warn('Local storage error resetting RSVPs:', err);
+  }
+  return [...SEED_RSVPS];
+}
 
 function getLocalRSVPs(): RSVPRecord[] {
   try {
@@ -139,7 +166,19 @@ function getLocalRSVPs(): RSVPRecord[] {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_RSVPS));
       return SEED_RSVPS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      // Ensure seed-7 (Dr. Mrs Omeogu) is in the list
+      if (!parsed.some((r: RSVPRecord) => r.reference_code === 'PU-2330')) {
+        const seedItem = SEED_RSVPS.find(r => r.reference_code === 'PU-2330');
+        if (seedItem) {
+          parsed.unshift(seedItem);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        }
+      }
+      return parsed;
+    }
+    return SEED_RSVPS;
   } catch (err) {
     console.warn('Local storage error reading RSVPs:', err);
     return SEED_RSVPS;
@@ -187,16 +226,76 @@ export async function getRSVPs(): Promise<RSVPRecord[]> {
   return localList;
 }
 
+export interface SubmitRSVPResponse {
+  success: boolean;
+  data?: RSVPRecord;
+  isDuplicate?: boolean;
+  duplicateField?: 'email' | 'phone' | 'both';
+  existingRecord?: RSVPRecord;
+  error?: string;
+}
+
 /**
  * Save new RSVP response with Option 3 default status ('pending' for accepted, 'declined' for regrets)
+ * If an identical email or phone has already been entered, returns isDuplicate with existing status
  */
 export async function submitRSVP(
   input: Omit<RSVPRecord, 'id' | 'created_at' | 'wedding_slug' | 'reference_code' | 'status' | 'allocated_seats'> & {
     reference_code?: string;
     status?: RSVPApprovalStatus;
     allocated_seats?: number;
+    allowDuplicate?: boolean;
   }
-): Promise<{ success: boolean; data?: RSVPRecord; error?: string }> {
+): Promise<SubmitRSVPResponse> {
+  const current = getLocalRSVPs();
+  const cleanPhone = (p: string) => p.replace(/\D/g, '');
+  const inputCleanPhone = cleanPhone(input.phone);
+  const inputEmail = (input.email || '').trim().toLowerCase();
+
+  // Check for identical email or phone number in database
+  const matchByEmail = inputEmail
+    ? current.find(r => r.email && r.email.trim().toLowerCase() === inputEmail)
+    : undefined;
+
+  const matchByPhone = inputCleanPhone && inputCleanPhone.length >= 7
+    ? current.find(r => {
+        const cp = cleanPhone(r.phone);
+        return cp && (cp.endsWith(inputCleanPhone) || inputCleanPhone.endsWith(cp));
+      })
+    : undefined;
+
+  const existing = matchByEmail || matchByPhone;
+
+  // If already entered and not explicitly allowed (e.g. admin manual override)
+  if (existing && !input.allowDuplicate) {
+    const duplicateField: 'email' | 'phone' | 'both' =
+      matchByEmail && matchByPhone ? 'both' : (matchByEmail ? 'email' : 'phone');
+
+    const statusWord =
+      existing.status === 'approved'
+        ? 'Approved'
+        : existing.status === 'declined'
+        ? 'Rejected'
+        : existing.status === 'waitlisted'
+        ? 'Waitlisted'
+        : 'Under Protocol Review';
+
+    const fieldDesc =
+      duplicateField === 'both'
+        ? 'Email address and phone number have'
+        : duplicateField === 'email'
+        ? 'Email address has'
+        : 'Phone number has';
+
+    return {
+      success: false,
+      isDuplicate: true,
+      duplicateField,
+      existingRecord: existing,
+      error: `${fieldDesc} already been used for an RSVP. Current Status: ${statusWord.toUpperCase()}`,
+    };
+  }
+
   // In Option 3, all attendance submissions enter as 'pending' for couple approval
   const defaultStatus: RSVPApprovalStatus = input.attendance === 'declined' ? 'declined' : (input.status || 'pending');
   const refCode = input.reference_code || generateReferenceCode();
@@ -212,10 +311,7 @@ export async function submitRSVP(
     created_at: new Date().toISOString(),
   };
 
-  const current = getLocalRSVPs();
-  const cleanPhone = (p: string) => p.replace(/\D/g, '');
-  
-  // If same phone or email exists, update record
+  // If same phone or email exists and allowDuplicate was set, update record
   const existingIdx = current.findIndex(
     r => (cleanPhone(r.phone) && cleanPhone(r.phone) === cleanPhone(newRecord.phone)) ||
          (r.email && r.email.toLowerCase() === newRecord.email.toLowerCase())
@@ -224,15 +320,15 @@ export async function submitRSVP(
   let updatedList: RSVPRecord[];
   if (existingIdx >= 0) {
     // Preserve existing reference code and approval status if previously approved
-    const existing = current[existingIdx];
+    const existingEntry = current[existingIdx];
     current[existingIdx] = {
-      ...existing,
+      ...existingEntry,
       ...newRecord,
-      id: existing.id,
-      reference_code: existing.reference_code || newRecord.reference_code,
-      status: existing.status === 'approved' ? 'approved' : newRecord.status,
-      allocated_seats: existing.status === 'approved' ? existing.allocated_seats : newRecord.allocated_seats,
-      table_assignment: existing.table_assignment || newRecord.table_assignment,
+      id: existingEntry.id,
+      reference_code: existingEntry.reference_code || newRecord.reference_code,
+      status: existingEntry.status === 'approved' ? 'approved' : newRecord.status,
+      allocated_seats: existingEntry.status === 'approved' ? existingEntry.allocated_seats : newRecord.allocated_seats,
+      table_assignment: existingEntry.table_assignment || newRecord.table_assignment,
     };
     updatedList = [...current];
   } else {

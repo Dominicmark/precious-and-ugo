@@ -3,6 +3,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { RSVPRecord } from '../types/rsvp';
 import { getOfficialCardUrl } from '../lib/invitationCardAsset';
 import {
+  generateInvitationCardJPEG,
+  downloadInvitationCardJPEG,
+} from '../lib/invitationCardGenerator';
+import {
   ShieldCheck,
   Calendar,
   MapPin,
@@ -16,6 +20,7 @@ import {
   CreditCard,
   Maximize2,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { WaxSeal } from './WaxSeal';
 
@@ -30,10 +35,31 @@ export const DigitalSecurityPass: React.FC<DigitalSecurityPassProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'pass' | 'card'>('pass');
   const [cardUrl, setCardUrl] = useState<string>(getOfficialCardUrl());
+  const [personalizedCardJpeg, setPersonalizedCardJpeg] = useState<string | null>(null);
+  const [isGeneratingJpeg, setIsGeneratingJpeg] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
 
   const seats = record.allocated_seats || record.guest_count || 1;
   const isApproved = record.status === 'approved';
+
+  useEffect(() => {
+    let isMounted = true;
+    setIsGeneratingJpeg(true);
+    generateInvitationCardJPEG(record)
+      .then((dataUrl) => {
+        if (isMounted) setPersonalizedCardJpeg(dataUrl);
+      })
+      .catch((err) => {
+        console.warn('Personalized card generation notice:', err);
+      })
+      .finally(() => {
+        if (isMounted) setIsGeneratingJpeg(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [record]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
@@ -47,7 +73,7 @@ export const DigitalSecurityPass: React.FC<DigitalSecurityPassProps> = ({
   }, []);
 
   const sharePass = () => {
-    const text = `Official Wedding Invitation & Security Pass for Precious & Ugochukwu (#UgoAmaka26):\n\nGuest: ${record.full_name}\nAccess: ${seats} Seat(s)\nTable: ${record.table_assignment || 'VIP Protocol Table'}\nRef Code: ${record.reference_code}\nDate: Friday, 13 Nov 2026 · 10:00 AM\nVenue: Tee Scee Event Center, Abuja\nDress: Strictly Black-Tie`;
+    const text = `Official Wedding Invitation & Security Pass for Precious & Ugochukwu (#UgoAmaka26):\n\nGuest: ${record.full_name}\nAccess: ${seats} Seat(s)\nTable: ${record.table_assignment || 'VIP Protocol Table'}\nRef Code: ${record.reference_code}\nDate: Friday, 13 Nov 2026 · 10:00 AM\nVenue: Tee s Cee Event Center, 6, Faskari Street, Area 3, Garki Abuja\nDress: Strictly Black-Tie`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
@@ -57,21 +83,22 @@ export const DigitalSecurityPass: React.FC<DigitalSecurityPassProps> = ({
     const details = encodeURIComponent(
       `Wedding Celebration for Precious Uzoamaka & Ugochukwu Omeogu.\nRef Code: ${record.reference_code}\nReserved Seats: ${seats}\nTable: ${record.table_assignment || 'VIP Protocol Table'}\nDress Code: Strictly Black-Tie Formal Western Attire (No Traditional Attire).`
     );
-    const location = encodeURIComponent('Tee Scee Event Center, 6 Area 3, Garki, Abuja, Nigeria');
+    const location = encodeURIComponent('Tee s Cee Event Center, 6, Faskari Street, Area 3, Garki, Abuja, Nigeria');
     const start = '20261113T090000Z';
     const end = '20261113T180000Z';
     const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`;
     window.open(googleCalendarUrl, '_blank');
   };
 
-  const handleDownloadCard = () => {
-    const link = document.createElement('a');
-    link.href = cardUrl;
-    link.download = `UgoAmaka26_Official_Invitation_Card_${record.reference_code}.jpg`;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownloadCard = async () => {
+    setIsDownloading(true);
+    try {
+      await downloadInvitationCardJPEG(record);
+    } catch (err) {
+      console.warn('Error downloading card JPEG:', err);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -237,10 +264,10 @@ export const DigitalSecurityPass: React.FC<DigitalSecurityPassProps> = ({
                   <MapPin className="w-4 h-4 text-[#ECC880] shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-white block">
-                      Tee Scee Event Center
+                      Tee s Cee Event Center
                     </span>
                     <span className="text-white/70 text-[11px]">
-                      6 Area 3, Garki, Abuja, Nigeria
+                      6, Faskari Street, Area 3, Garki Abuja
                     </span>
                   </div>
                 </div>
@@ -275,21 +302,34 @@ export const DigitalSecurityPass: React.FC<DigitalSecurityPassProps> = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="mt-4 pt-3 border-t border-white/10 flex items-center gap-2">
+            <div className="mt-4 pt-3 border-t border-white/10 grid grid-cols-3 gap-2">
               <button
-                onClick={addToCalendar}
-                className="flex-1 py-2.5 px-3 rounded-xl bg-white/10 text-white border border-[#D6B477]/60 text-xs font-bold hover:bg-white/20 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                onClick={handleDownloadCard}
+                disabled={isDownloading}
+                className="py-2.5 px-2 rounded-xl bg-gradient-to-r from-[#D6B477] to-[#ECC880] text-[#0E1B2E] font-bold text-xs hover:brightness-105 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
               >
-                <Calendar className="w-3.5 h-3.5 text-[#ECC880]" />
-                Calendar
+                {isDownloading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0E1B2E]" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-[#0E1B2E]" />
+                )}
+                <span>{isDownloading ? 'Saving...' : 'Save Card'}</span>
               </button>
 
               <button
                 onClick={sharePass}
-                className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#D6B477] to-[#ECC880] text-[#0E1B2E] font-bold text-xs hover:brightness-105 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                className="py-2.5 px-2 rounded-xl bg-white/15 text-white font-bold text-xs hover:bg-white/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-[#D6B477]/40"
               >
-                <Share2 className="w-3.5 h-3.5 text-[#0E1B2E]" />
-                WhatsApp
+                <Share2 className="w-3.5 h-3.5 text-[#ECC880]" />
+                <span>WhatsApp</span>
+              </button>
+
+              <button
+                onClick={addToCalendar}
+                className="py-2.5 px-2 rounded-xl bg-white/10 text-white border border-white/20 text-xs font-bold hover:bg-white/20 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Calendar className="w-3.5 h-3.5 text-[#ECC880]" />
+                <span>Calendar</span>
               </button>
             </div>
           </div>
@@ -305,20 +345,27 @@ export const DigitalSecurityPass: React.FC<DigitalSecurityPassProps> = ({
                 Official Wedding Stationery
               </p>
               <h3 className="font-display text-base sm:text-lg font-bold uppercase text-white mt-0.5">
-                Official Invitation Card
+                Official Invitation Card (JPEG)
               </h3>
               <p className="text-[11px] text-white/60">
-                Issued for {record.full_name} · Ref #{record.reference_code}
+                Personalized for {record.full_name} · Ref #{record.reference_code}
               </p>
             </div>
 
             {/* Card Graphic Container with Gold Border */}
-            <div className="relative rounded-xl overflow-hidden border-2 border-[#D6B477]/80 shadow-2xl bg-black group">
-              <img
-                src={cardUrl}
-                alt="Official Wedding Invitation Card"
-                className="w-full h-auto max-h-[440px] object-contain mx-auto transition-transform duration-300 group-hover:scale-[1.01]"
-              />
+            <div className="relative rounded-xl overflow-hidden border-2 border-[#D6B477]/80 shadow-2xl bg-black group min-h-[320px] flex items-center justify-center">
+              {isGeneratingJpeg && !personalizedCardJpeg ? (
+                <div className="py-16 flex flex-col items-center justify-center gap-3 text-white/70">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#ECC880]" />
+                  <span className="text-xs font-medium">Generating your personalized invitation card JPEG...</span>
+                </div>
+              ) : (
+                <img
+                  src={personalizedCardJpeg || cardUrl}
+                  alt={`Official Wedding Invitation Card for ${record.full_name}`}
+                  className="w-full h-auto max-h-[480px] object-contain mx-auto transition-transform duration-300 group-hover:scale-[1.01]"
+                />
+              )}
 
               {/* Watermark Reference on Card */}
               <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-md bg-[#0E1B2E]/90 border border-[#D6B477]/60 text-[9px] font-mono text-[#ECC880] shadow-md backdrop-blur-xs">
@@ -330,18 +377,23 @@ export const DigitalSecurityPass: React.FC<DigitalSecurityPassProps> = ({
             <div className="pt-2 flex items-center justify-center gap-3">
               <button
                 onClick={handleDownloadCard}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#D6B477] to-[#ECC880] text-[#0E1B2E] font-bold text-xs uppercase tracking-wider hover:brightness-105 transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                disabled={isDownloading}
+                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#D6B477] to-[#ECC880] text-[#0E1B2E] font-bold text-xs uppercase tracking-wider hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg cursor-pointer disabled:opacity-50"
               >
-                <Download className="w-4 h-4 text-[#0E1B2E]" />
-                <span>Save Card to Phone</span>
+                {isDownloading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-[#0E1B2E]" />
+                ) : (
+                  <Download className="w-4 h-4 text-[#0E1B2E]" />
+                )}
+                <span>{isDownloading ? 'Saving JPEG to Phone...' : 'Download JPEG Card to Phone'}</span>
               </button>
 
               <button
                 onClick={sharePass}
-                className="py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer"
+                className="py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer"
               >
                 <Share2 className="w-4 h-4 text-[#ECC880]" />
-                <span className="hidden sm:inline">Share</span>
+                <span>Share</span>
               </button>
             </div>
           </div>

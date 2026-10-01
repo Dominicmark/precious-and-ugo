@@ -5,7 +5,7 @@ import { ScrollReveal } from './ScrollReveal';
 export const EventDetails: React.FC = () => {
   // Google Calendar link for 13 Nov 2026 16:00 to 22:00 WAT (15:00Z to 21:00Z)
   const gcalUrl =
-    'https://calendar.google.com/calendar/render?action=TEMPLATE&text=Wedding+Celebration:+Precious+%26+Ugochukwu+%23UgoAmaka26&dates=20261113T150000Z/20261113T210000Z&details=The+Wedding+Celebration+of+Precious+Uzoamaka+%26+Ugochukwu+Omeogu.+Strictly+by+Invitation.+Hashtag:+%23UgoAmaka26';
+    'https://calendar.google.com/calendar/render?action=TEMPLATE&text=Wedding+Celebration:+Precious+%26+Ugochukwu+%23UgoAmaka26&dates=20261113T150000Z/20261113T210000Z&details=The+Wedding+Celebration+of+Precious+Uzoamaka+%26+Ugochukwu+Omeogu.+Strictly+by+Invitation.+Hashtag:+%23UgoAmaka26&location=Tee+s+Cee+Event+Center,+6,+Faskari+Street,+Area+3,+Garki+Abuja';
 
   const downloadICS = () => {
     const icsContent = [
@@ -19,6 +19,7 @@ export const EventDetails: React.FC = () => {
       'UID:ugoamaka26-wedding-20261113@wedding.ng',
       'DTSTART:20261113T150000Z',
       'DTEND:20261113T210000Z',
+      'LOCATION:Tee s Cee Event Center, 6, Faskari Street, Area 3, Garki Abuja',
       'DESCRIPTION:The Wedding Celebration of Precious Uzoamaka & Ugochukwu Omeogu. Strictly by Invitation.',
       'STATUS:CONFIRMED',
       'END:VEVENT',

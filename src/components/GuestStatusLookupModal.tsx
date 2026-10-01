@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { lookupRSVP } from '../lib/supabase';
+import { lookupRSVP, resetRSVPList } from '../lib/supabase';
 import { RSVPRecord } from '../types/rsvp';
 import { DigitalSecurityPass } from './DigitalSecurityPass';
 import {
@@ -12,6 +12,8 @@ import {
   ArrowRight,
   UserCheck,
   AlertCircle,
+  RefreshCw,
+  Check,
 } from 'lucide-react';
 import { WaxSeal } from './WaxSeal';
 
@@ -31,23 +33,38 @@ export const GuestStatusLookupModal: React.FC<GuestStatusLookupModalProps> = ({
   const [result, setResult] = useState<RSVPRecord | null>(null);
   const [searched, setSearched] = useState(false);
   const [showFullPass, setShowFullPass] = useState(false);
+  const [resetNotice, setResetNotice] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  const handleSearch = async (e?: React.FormEvent, customQuery?: string) => {
+    if (e) e.preventDefault();
+    const targetQuery = customQuery !== undefined ? customQuery : query;
+    if (!targetQuery.trim()) return;
 
     setIsSearching(true);
     setSearched(true);
     try {
-      const match = await lookupRSVP(query.trim());
+      const match = await lookupRSVP(targetQuery.trim());
       setResult(match);
     } catch {
       setResult(null);
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleQuickLookup = (code: string) => {
+    setQuery(code);
+    handleSearch(undefined, code);
+  };
+
+  const handleResetList = () => {
+    resetRSVPList();
+    setResetNotice(true);
+    setResult(null);
+    setSearched(false);
+    setTimeout(() => setResetNotice(false), 2500);
   };
 
   const handleReset = () => {
@@ -116,6 +133,36 @@ export const GuestStatusLookupModal: React.FC<GuestStatusLookupModalProps> = ({
                 </>
               )}
             </button>
+
+            {/* Quick Demo Test Chips */}
+            <div className="pt-1 text-left">
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block mb-1">
+                Quick Test Codes:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleQuickLookup('PU-2330')}
+                  className="px-2.5 py-1 rounded-md bg-[#D6B477]/20 border border-[#D6B477]/60 text-[#0E1B2E] text-[10px] font-bold hover:bg-[#D6B477]/35 transition-colors cursor-pointer"
+                >
+                  PU-2330 (Dr. Mrs Omeogu)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLookup('PU-7241')}
+                  className="px-2 py-0.5 rounded-md bg-gray-100 border border-gray-300 text-gray-700 text-[10px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
+                >
+                  PU-7241 (Dr. Eze)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLookup('PU-9104')}
+                  className="px-2 py-0.5 rounded-md bg-gray-100 border border-gray-300 text-gray-700 text-[10px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
+                >
+                  PU-9104 (Pending)
+                </button>
+              </div>
+            </div>
           </form>
 
           {/* Search Results Display */}
@@ -218,6 +265,28 @@ export const GuestStatusLookupModal: React.FC<GuestStatusLookupModalProps> = ({
                 )}
               </motion.div>
             )}
+          </div>
+
+          {/* Testing / Reset Guest Registry Action */}
+          <div className="mt-5 pt-3 border-t border-gray-200/80 flex items-center justify-between text-[11px] text-gray-500">
+            <span>Need clean test data?</span>
+            <button
+              type="button"
+              onClick={handleResetList}
+              className="inline-flex items-center gap-1 font-bold text-[#0E1B2E] hover:text-[#5687AD] transition-colors cursor-pointer"
+            >
+              {resetNotice ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-emerald-700 font-bold">List Refreshed!</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 text-[#D6B477]" />
+                  <span>Reset Demo Guest List</span>
+                </>
+              )}
+            </button>
           </div>
         </motion.div>
       </div>
