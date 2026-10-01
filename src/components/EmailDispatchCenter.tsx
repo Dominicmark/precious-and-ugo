@@ -3,8 +3,11 @@ import { RSVPRecord } from '../types/rsvp';
 import {
   generateWeddingEmail,
   generateMailtoUrl,
+  generateGmailComposeUrl,
   sendEmailViaService,
   EmailCustomization,
+  WeddingEmailType,
+  WeddingCardTheme,
 } from '../lib/emailTemplates';
 import {
   Mail,
@@ -19,6 +22,7 @@ import {
   ShieldCheck,
   Clock,
   AlertCircle,
+  XCircle,
   RefreshCw,
   Sliders,
 } from 'lucide-react';
@@ -34,11 +38,14 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
   onShowToast,
   onRefreshRecords,
 }) => {
-  const [templateType, setTemplateType] = useState<'approval' | 'acknowledgment' | 'waitlist'>('approval');
+  const [templateType, setTemplateType] = useState<WeddingEmailType>('approval');
+  const [cardTheme, setCardTheme] = useState<WeddingCardTheme>('floral-cream');
   const [selectedGuestId, setSelectedGuestId] = useState<string>('');
   const [customSubject, setCustomSubject] = useState<string>('');
   const [customMessage, setCustomMessage] = useState<string>('');
   const [includeCardImage, setIncludeCardImage] = useState<boolean>(true);
+  const [testEmailAddress, setTestEmailAddress] = useState<string>('dominicmarkude@gmail.com');
+  const [isSendingTest, setIsSendingTest] = useState<boolean>(false);
 
   // Settings
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
@@ -50,7 +57,7 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
   const [copiedHtml, setCopiedHtml] = useState<boolean>(false);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
 
-  // Filter approved & pending guests with valid emails
+  // Filter approved & pending & declined guests with valid emails
   const approvedGuests = useMemo(() => {
     return records.filter((r) => r.status === 'approved' && r.email && r.email.includes('@'));
   }, [records]);
@@ -59,11 +66,16 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
     return records.filter((r) => r.status === 'pending' && r.email && r.email.includes('@'));
   }, [records]);
 
+  const declinedGuests = useMemo(() => {
+    return records.filter((r) => r.status === 'declined' && r.email && r.email.includes('@'));
+  }, [records]);
+
   const targetGuests = useMemo(() => {
     if (templateType === 'approval') return approvedGuests;
+    if (templateType === 'declined') return declinedGuests;
     if (templateType === 'acknowledgment') return pendingGuests;
     return records.filter((r) => r.status === 'waitlisted' && r.email);
-  }, [templateType, approvedGuests, pendingGuests, records]);
+  }, [templateType, approvedGuests, declinedGuests, pendingGuests, records]);
 
   // Selected Guest or sample guest for preview
   const activeGuest: RSVPRecord = useMemo(() => {
@@ -98,9 +110,10 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
     return {
       subject: customSubject || undefined,
       message: customMessage || undefined,
+      cardTheme,
       includeCardImage,
     };
-  }, [customSubject, customMessage, includeCardImage]);
+  }, [customSubject, customMessage, cardTheme, includeCardImage]);
 
   const generatedEmail = useMemo(() => {
     return generateWeddingEmail(templateType, activeGuest, customization);
@@ -113,6 +126,32 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
     localStorage.setItem('ugoamaka26_sender_name', senderName.trim());
     setShowSettingsModal(false);
     onShowToast('Email Dispatch Settings saved');
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmailAddress || !testEmailAddress.includes('@')) {
+      onShowToast('Please enter a valid email address to receive test card');
+      return;
+    }
+
+    setIsSendingTest(true);
+    try {
+      const res = await sendEmailViaService({
+        to: testEmailAddress.trim(),
+        subject: `[TEST PREVIEW] ${generatedEmail.subject}`,
+        html: generatedEmail.html,
+        text: generatedEmail.text,
+        apiKey: apiKey.trim() || undefined,
+      });
+
+      if (res.success) {
+        onShowToast(`Sample invitation email sent to ${testEmailAddress.trim()}! Check your inbox.`);
+      } else {
+        onShowToast(`Notice: ${res.message}. (Add your Resend API Key in Settings to send from background)`);
+      }
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   const handleCopyHtml = () => {
@@ -128,6 +167,15 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
       return;
     }
     const url = generateMailtoUrl(activeGuest.email, generatedEmail.subject, generatedEmail.text);
+    window.open(url, '_blank');
+  };
+
+  const handleOpenGmail = () => {
+    if (!activeGuest.email) {
+      onShowToast('This guest has no email address');
+      return;
+    }
+    const url = generateGmailComposeUrl(activeGuest.email, generatedEmail.subject, generatedEmail.text);
     window.open(url, '_blank');
   };
 
@@ -252,7 +300,7 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
               1. Select Email Workflow
             </label>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => setTemplateType('approval')}
@@ -264,10 +312,28 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
               >
                 <div className="flex items-center gap-1.5 mb-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-[#ECC880]" />
-                  <span>VIP Approved</span>
+                  <span>Approved</span>
                 </div>
                 <span className="text-[10px] block font-normal opacity-80">
-                  Sends Card &amp; Table
+                  Card &amp; Table
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTemplateType('declined')}
+                className={`p-2.5 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer ${
+                  templateType === 'declined'
+                    ? 'bg-[#0E1B2E] text-[#ECC880] border-[#D6B477]'
+                    : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <XCircle className="w-3.5 h-3.5 text-red-400" />
+                  <span>Declined</span>
+                </div>
+                <span className="text-[10px] block font-normal opacity-80">
+                  Capacity Regrets
                 </span>
               </button>
 
@@ -285,7 +351,7 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
                   <span>Under Review</span>
                 </div>
                 <span className="text-[10px] block font-normal opacity-80">
-                  Hides Venue/Seats
+                  Hides Venue
                 </span>
               </button>
 
@@ -303,9 +369,51 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
                   <span>Waitlist</span>
                 </div>
                 <span className="text-[10px] block font-normal opacity-80">
-                  100 Capacity Regret
+                  Priority List
                 </span>
               </button>
+            </div>
+
+            {/* Card Aesthetic Design Theme Selector */}
+            <div className="pt-2.5 border-t border-gray-100">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
+                Card Stationery Aesthetic:
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setCardTheme('floral-cream')}
+                  className={`py-1.5 px-2 rounded-xl text-[10px] font-bold border transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    cardTheme === 'floral-cream'
+                      ? 'bg-[#FAF5EC] text-[#9C7A35] border-[#D6B477] shadow-xs'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  <span>🌸 Floral Cream</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardTheme('modern-gold')}
+                  className={`py-1.5 px-2 rounded-xl text-[10px] font-bold border transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    cardTheme === 'modern-gold'
+                      ? 'bg-[#FAF5EC] text-[#9C7A35] border-[#D6B477] shadow-xs'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  <span>✨ Minimal Ivory</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCardTheme('midnight-navy')}
+                  className={`py-1.5 px-2 rounded-xl text-[10px] font-bold border transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    cardTheme === 'midnight-navy'
+                      ? 'bg-[#0E1B2E] text-[#ECC880] border-[#D6B477] shadow-xs'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  <span>🌙 Royal Navy</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -398,20 +506,30 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
               <span>{isSending ? 'Dispatching...' : 'Send Official Email Now'}</span>
             </button>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <button
+                onClick={handleOpenGmail}
+                disabled={!activeGuest.email}
+                className="py-2 px-2.5 rounded-lg bg-red-600/30 hover:bg-red-600/40 text-red-200 text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 border border-red-500/40 cursor-pointer disabled:opacity-50"
+                title="Launch Gmail Web with pre-filled subject and template"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+                <span>Open Gmail</span>
+              </button>
+
               <button
                 onClick={handleOpenMailto}
                 disabled={!activeGuest.email}
-                className="py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer disabled:opacity-50"
-                title="Open in your default email software (Gmail, Outlook, Apple Mail)"
+                className="py-2 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer disabled:opacity-50"
+                title="Open in your default email software (Apple Mail, Outlook)"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-[#ECC880]" />
-                <span>Open in Mail App</span>
+                <span>Mail App</span>
               </button>
 
               <button
                 onClick={handleCopyHtml}
-                className="py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer"
+                className="py-2 px-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer"
                 title="Copy styled HTML to paste directly in email client"
               >
                 {copiedHtml ? (
@@ -426,6 +544,30 @@ export const EmailDispatchCenter: React.FC<EmailDispatchCenterProps> = ({
                   </>
                 )}
               </button>
+            </div>
+
+            {/* Test Send to Real Email Address */}
+            <div className="pt-2 border-t border-white/10 space-y-1.5 text-left">
+              <span className="text-[10px] font-mono uppercase text-[#ECC880] block font-bold">
+                🧪 Test Card in Your Personal Inbox:
+              </span>
+              <div className="flex gap-1.5">
+                <input
+                  type="email"
+                  value={testEmailAddress}
+                  onChange={(e) => setTestEmailAddress(e.target.value)}
+                  placeholder="your.email@gmail.com"
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/20 text-xs text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#ECC880]"
+                />
+                <button
+                  type="button"
+                  onClick={handleSendTestEmail}
+                  disabled={isSendingTest || !testEmailAddress}
+                  className="px-3 py-1.5 rounded-lg bg-[#D6B477] hover:bg-[#ECC880] text-[#0E1B2E] font-bold text-xs shrink-0 cursor-pointer disabled:opacity-50 transition-colors"
+                >
+                  {isSendingTest ? 'Sending...' : 'Send Test'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

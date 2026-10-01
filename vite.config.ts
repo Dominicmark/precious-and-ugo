@@ -20,7 +20,7 @@ function emailApiPlugin(): Plugin {
         });
         req.on('end', async () => {
           try {
-            const { to, subject, html, text, apiKey } = JSON.parse(bodyStr || '{}');
+            const { to, subject, html, text, apiKey, attachments, from } = JSON.parse(bodyStr || '{}');
             const key = apiKey || process.env.RESEND_API_KEY;
 
             if (!key) {
@@ -29,10 +29,23 @@ function emailApiPlugin(): Plugin {
               res.end(
                 JSON.stringify({
                   success: false,
+                  simulated: true,
                   message: 'No Resend API Key configured. Please add one in Mailer Settings or use Mailto / Copy HTML.',
                 })
               );
               return;
+            }
+
+            const sendPayload: Record<string, unknown> = {
+              from: from || process.env.RESEND_FROM_EMAIL || 'Precious & Ugochukwu <onboarding@resend.dev>',
+              to: [to],
+              subject,
+              html,
+              text,
+            };
+
+            if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+              sendPayload.attachments = attachments;
             }
 
             const response = await fetch('https://api.resend.com/emails', {
@@ -41,13 +54,7 @@ function emailApiPlugin(): Plugin {
                 Authorization: `Bearer ${key}`,
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({
-                from: 'Precious & Ugochukwu <onboarding@resend.dev>',
-                to: [to],
-                subject,
-                html,
-                text,
-              }),
+              body: JSON.stringify(sendPayload),
             });
 
             const resData = (await response.json().catch(() => ({}))) as { message?: string; id?: string };

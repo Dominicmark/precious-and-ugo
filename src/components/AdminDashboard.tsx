@@ -17,6 +17,11 @@ import {
 import { VisualSeatingPlanner } from './VisualSeatingPlanner';
 import { EmailDispatchCenter } from './EmailDispatchCenter';
 import {
+  sendAutomatedRSVPEmail,
+  generateGmailComposeUrl,
+  generateWeddingEmail,
+} from '../lib/emailTemplates';
+import {
   ShieldCheck,
   Search,
   Download,
@@ -45,6 +50,7 @@ import {
   LayoutGrid,
   Menu,
   Mail,
+  ExternalLink,
 } from 'lucide-react';
 import { WaxSeal } from './WaxSeal';
 
@@ -80,6 +86,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
   const [showAddGuestModal, setShowAddGuestModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedRefId, setCopiedRefId] = useState<string | null>(null);
+  const [autoEmailEnabled, setAutoEmailEnabled] = useState<boolean>(
+    () => localStorage.getItem('ugoamaka26_auto_email') !== 'false'
+  );
+
+  const toggleAutoEmail = () => {
+    const nextVal = !autoEmailEnabled;
+    setAutoEmailEnabled(nextVal);
+    localStorage.setItem('ugoamaka26_auto_email', String(nextVal));
+    showToast(`Automated Resend confirmation email is now ${nextVal ? 'ENABLED' : 'PAUSED'}`);
+  };
+
+  const handleOpenGmail = (guest: RSVPRecord) => {
+    if (!guest.email || !guest.email.includes('@')) {
+      showToast(`No email on file for ${guest.full_name}`);
+      return;
+    }
+    const templateType = guest.status === 'approved' ? 'approval' : guest.status === 'declined' ? 'declined' : 'waitlist';
+    const email = generateWeddingEmail(templateType, guest);
+    const gmailUrl = generateGmailComposeUrl(guest.email, email.subject, email.text);
+    window.open(gmailUrl, '_blank');
+  };
 
   // Manual Add Form State
   const [manualName, setManualName] = useState('');
@@ -146,6 +173,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
     });
     if (res.success) {
       showToast(`Approved ${guest.full_name} · ${seats} seat(s)`);
+      if (autoEmailEnabled && guest.email && guest.email.includes('@')) {
+        sendAutomatedRSVPEmail(guest, 'approved', { allocatedSeats: seats })
+          .then((mailRes) => {
+            if (mailRes.success) {
+              showToast(`Automated confirmation email sent to ${guest.email} via Resend!`);
+            }
+          })
+          .catch((err) => console.warn('Auto email error:', err));
+      }
       loadRecords();
     }
   };
@@ -155,15 +191,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
     const res = await updateRSVPStatus(guest.id, { status: 'waitlisted' });
     if (res.success) {
       showToast(`Moved ${guest.full_name} to Waitlist`);
+      if (autoEmailEnabled && guest.email && guest.email.includes('@')) {
+        sendAutomatedRSVPEmail(guest, 'waitlisted')
+          .then((mailRes) => {
+            if (mailRes.success) {
+              showToast(`Waitlist notice sent to ${guest.email} via Resend.`);
+            }
+          })
+          .catch((err) => console.warn('Auto email error:', err));
+      }
       loadRecords();
     }
   };
 
-  // Quick Decline
+  // Quick Decline / Reject
   const handleDecline = async (guest: RSVPRecord) => {
     const res = await updateRSVPStatus(guest.id, { status: 'declined', allocated_seats: 0 });
     if (res.success) {
       showToast(`Declined ${guest.full_name}`);
+      if (autoEmailEnabled && guest.email && guest.email.includes('@')) {
+        sendAutomatedRSVPEmail(guest, 'declined')
+          .then((mailRes) => {
+            if (mailRes.success) {
+              showToast(`Automated update email sent to ${guest.email} via Resend.`);
+            }
+          })
+          .catch((err) => console.warn('Auto email error:', err));
+      }
       loadRecords();
     }
   };
@@ -178,6 +232,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
     });
     if (res.success) {
       showToast(`Updated reservation for ${editingGuest.full_name}`);
+      if (autoEmailEnabled && editingGuest.email && editingGuest.email.includes('@')) {
+        sendAutomatedRSVPEmail(editingGuest, 'approved', {
+          allocatedSeats: editSeats,
+          tableAssignment: editTable.trim(),
+        })
+          .then((mailRes) => {
+            if (mailRes.success) {
+              showToast(`Confirmation email sent to ${editingGuest.email} via Resend!`);
+            }
+          })
+          .catch((err) => console.warn('Auto email error:', err));
+      }
       setEditingGuest(null);
       loadRecords();
     }
@@ -388,6 +454,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
             {/* Desktop Action Buttons (Visible on md+ screens) */}
             <div className="hidden md:flex items-center gap-1.5">
               <button
+                onClick={toggleAutoEmail}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+                  autoEmailEnabled
+                    ? 'bg-emerald-500/20 border-emerald-400/60 text-emerald-300'
+                    : 'bg-white/10 border-white/20 text-white/60'
+                }`}
+                title={autoEmailEnabled ? 'Automated Resend emails will fire on status changes' : 'Automated emails paused'}
+              >
+                <Mail className="w-3.5 h-3.5" />
+                <span>Auto-Email: {autoEmailEnabled ? 'ON' : 'OFF'}</span>
+              </button>
+
+              <button
                 onClick={() => setShowCardManagerModal(true)}
                 className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#ECC880] text-[11px] font-bold transition-all flex items-center gap-1 border border-[#D6B477]/40 shadow-xs cursor-pointer"
                 title="Manage Official Invitation Card Artwork"
@@ -458,6 +537,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
                     <div className="px-3 py-1.5 border-b border-white/10 text-[10px] font-mono uppercase tracking-widest text-[#D6B477]">
                       Protocol Controls
                     </div>
+
+                    <button
+                      onClick={() => {
+                        setShowMobileActionMenu(false);
+                        toggleAutoEmail();
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold hover:bg-white/10 transition-colors flex items-center justify-between cursor-pointer text-white"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Mail className="w-4 h-4 text-[#ECC880]" />
+                        <span>Auto-Email Confirmation</span>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${autoEmailEnabled ? 'bg-emerald-600 text-white' : 'bg-gray-700 text-gray-300'}`}>
+                        {autoEmailEnabled ? 'ON' : 'OFF'}
+                      </span>
+                    </button>
 
                     <button
                       onClick={() => {
@@ -942,6 +1037,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
                           >
                             <Mail className="w-3.5 h-3.5 text-[#D6B477]" />
                             <span>Email Card</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleOpenGmail(guest)}
+                            className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                            title="Open pre-filled invitation in Gmail Web"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 text-red-500" />
+                            <span>Gmail</span>
                           </button>
 
                           <button
