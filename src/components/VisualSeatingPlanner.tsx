@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { RSVPRecord } from '../types/rsvp';
 import { WeddingTable, getWeddingTables, saveWeddingTables } from '../lib/tableStorage';
 import { updateRSVPStatus } from '../lib/supabase';
+import { VisualBanquetFloorMap } from './VisualBanquetFloorMap';
 import {
   Users,
   Plus,
@@ -16,6 +17,8 @@ import {
   UserPlus,
   ArrowRight,
   ChevronDown,
+  Map as MapIcon,
+  LayoutGrid,
 } from 'lucide-react';
 
 interface VisualSeatingPlannerProps {
@@ -30,6 +33,7 @@ export const VisualSeatingPlanner: React.FC<VisualSeatingPlannerProps> = ({
   onShowToast,
 }) => {
   const [tables, setTables] = useState<WeddingTable[]>(getWeddingTables());
+  const [plannerMode, setPlannerMode] = useState<'map' | 'cards'>('map');
   const [showAddTableModal, setShowAddTableModal] = useState(false);
   const [newTableName, setNewTableName] = useState('');
   const [newTableCapacity, setNewTableCapacity] = useState<number>(8);
@@ -135,7 +139,7 @@ export const VisualSeatingPlanner: React.FC<VisualSeatingPlannerProps> = ({
     }
     // Unseat all guests currently at this table
     const guestsAtTable = seatedMap.get(name) || [];
-    guestsAtTable.forEach((g) => handleUnseatGuest(g));
+    guestsAtTable.forEach((g: RSVPRecord) => handleUnseatGuest(g));
 
     const updated = tables.filter((t) => t.id !== id);
     setTables(updated);
@@ -166,7 +170,7 @@ export const VisualSeatingPlanner: React.FC<VisualSeatingPlannerProps> = ({
         rows.push([`"${table.name}"`, table.category, 'Empty', 'None', '', 0, '', '']);
       } else {
         let seatOffset = 1;
-        guests.forEach((g) => {
+        guests.forEach((g: RSVPRecord) => {
           const seats = g.allocated_seats || g.guest_count || 1;
           const range = seats === 1 ? `Seat ${seatOffset}` : `Seats ${seatOffset} - ${seatOffset + seats - 1}`;
           rows.push([
@@ -217,7 +221,34 @@ export const VisualSeatingPlanner: React.FC<VisualSeatingPlannerProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Sub-view switcher: Floor Map vs Cards Grid */}
+          <div className="inline-flex p-1 rounded-xl bg-gray-100 border border-gray-200">
+            <button
+              onClick={() => setPlannerMode('map')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                plannerMode === 'map'
+                  ? 'bg-[#0E1B2E] text-[#ECC880] shadow-sm'
+                  : 'text-gray-600 hover:text-[#0E1B2E]'
+              }`}
+            >
+              <MapIcon className="w-3.5 h-3.5" />
+              <span>Ballroom Floor Map</span>
+            </button>
+
+            <button
+              onClick={() => setPlannerMode('cards')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                plannerMode === 'cards'
+                  ? 'bg-[#0E1B2E] text-[#ECC880] shadow-sm'
+                  : 'text-gray-600 hover:text-[#0E1B2E]'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Table Cards</span>
+            </button>
+          </div>
+
           <button
             onClick={() => setShowAddTableModal(true)}
             className="px-3.5 py-2 rounded-xl bg-[#0E1B2E] hover:bg-[#142338] text-[#ECC880] text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
@@ -313,12 +344,22 @@ export const VisualSeatingPlanner: React.FC<VisualSeatingPlannerProps> = ({
         )}
       </div>
 
-      {/* VISUAL TABLES GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+      {/* FLOOR MAP OR CARDS VIEW */}
+      {plannerMode === 'map' ? (
+        <VisualBanquetFloorMap
+          tables={tables}
+          seatedMap={seatedMap}
+          unassignedGuests={unassignedGuests}
+          onAssignGuest={handleAssignGuest}
+          onUnseatGuest={handleUnseatGuest}
+        />
+      ) : (
+        /* VISUAL TABLES GRID */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {tables.map((table) => {
           const seatedGuests = seatedMap.get(table.name) || [];
           const occupiedSeats = seatedGuests.reduce(
-            (acc, g) => acc + (g.allocated_seats || g.guest_count || 1),
+            (acc: number, g: RSVPRecord) => acc + (g.allocated_seats || g.guest_count || 1),
             0
           );
           const remainingSeats = table.capacity - occupiedSeats;
@@ -393,7 +434,7 @@ export const VisualSeatingPlanner: React.FC<VisualSeatingPlannerProps> = ({
                       No guests seated here yet.
                     </div>
                   ) : (
-                    seatedGuests.map((guest) => {
+                    seatedGuests.map((guest: RSVPRecord) => {
                       const guestSeats = guest.allocated_seats || guest.guest_count || 1;
                       const hasPlusOne = guestSeats > 1;
 
@@ -489,6 +530,7 @@ export const VisualSeatingPlanner: React.FC<VisualSeatingPlannerProps> = ({
           );
         })}
       </div>
+      )}
 
       {/* MODAL: ADD NEW TABLE */}
       {showAddTableModal && (

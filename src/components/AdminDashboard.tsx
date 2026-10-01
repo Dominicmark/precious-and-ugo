@@ -41,6 +41,7 @@ import {
   Layers,
   ChevronRight,
   LayoutGrid,
+  Menu,
 } from 'lucide-react';
 import { WaxSeal } from './WaxSeal';
 
@@ -59,6 +60,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
   const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'waitlisted' | 'declined' | 'all'>('pending');
   const [relationshipFilter, setRelationshipFilter] = useState<string>('all');
   const [dashboardView, setDashboardView] = useState<'registry' | 'seating'>('registry');
+  const [showMobileActionMenu, setShowMobileActionMenu] = useState(false);
 
   // Official Card Asset State
   const [officialCardUrl, setOfficialCardUrlState] = useState<string>(getOfficialCardUrl());
@@ -371,43 +373,133 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Manage Official Card Button */}
-            <button
-              onClick={() => setShowCardManagerModal(true)}
-              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#ECC880] text-xs font-bold transition-all flex items-center gap-1.5 border border-[#D6B477]/50 shadow-xs cursor-pointer"
-            >
-              <ImageIcon className="w-3.5 h-3.5 text-[#ECC880]" />
-              <span className="hidden sm:inline">Invitation Card Asset</span>
-            </button>
+          {/* Action Controls: Compact Desktop & Mobile Hamburger Menu */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Desktop Action Buttons (Visible on md+ screens) */}
+            <div className="hidden md:flex items-center gap-1.5">
+              <button
+                onClick={() => setShowCardManagerModal(true)}
+                className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#ECC880] text-[11px] font-bold transition-all flex items-center gap-1 border border-[#D6B477]/40 shadow-xs cursor-pointer"
+                title="Manage Official Invitation Card Artwork"
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-[#ECC880]" />
+                <span>Card Asset</span>
+              </button>
 
-            {/* Add Manual Guest */}
-            <button
-              onClick={() => setShowAddGuestModal(true)}
-              className="px-3 py-1.5 rounded-lg bg-[#D6B477] text-[#0E1B2E] text-xs font-bold hover:brightness-105 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Add Guest</span>
-            </button>
+              <button
+                onClick={() => setShowAddGuestModal(true)}
+                className="px-2.5 py-1.5 rounded-lg bg-[#D6B477] text-[#0E1B2E] text-[11px] font-bold hover:brightness-105 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Guest</span>
+              </button>
 
-            {/* Download Bouncer CSV */}
-            <button
-              onClick={() => exportRSVPsToCSV(records)}
-              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all flex items-center gap-1.5 border border-white/20 cursor-pointer"
-              title="Download CSV for Gate Security Personnel"
-            >
-              <Download className="w-3.5 h-3.5 text-[#ECC880]" />
-              <span className="hidden sm:inline">Bouncer List</span>
-            </button>
+              <button
+                onClick={() => exportRSVPsToCSV(records)}
+                className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold transition-all flex items-center gap-1 border border-white/20 cursor-pointer"
+                title="Download Gate Bouncer List (CSV)"
+              >
+                <Download className="w-3.5 h-3.5 text-[#ECC880]" />
+                <span>Bouncer List</span>
+              </button>
 
-            <button
-              onClick={loadRecords}
-              disabled={isLoading}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-              title="Refresh Registry"
-            >
-              <RefreshCw className={`w-4 h-4 text-[#ECC880] ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
+              <button
+                onClick={loadRecords}
+                disabled={isLoading}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                title="Refresh Registry"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-[#ECC880] ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+
+            {/* Mobile Action Hamburger Button (Always visible on mobile & tablet) */}
+            <div className="relative">
+              <button
+                onClick={() => setShowMobileActionMenu(!showMobileActionMenu)}
+                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-[#ECC880] border border-[#D6B477]/60 flex items-center justify-center transition-all cursor-pointer shadow-xs"
+                aria-label="Open Protocol Actions Menu"
+                title="Actions Menu"
+              >
+                {showMobileActionMenu ? (
+                  <X className="w-5 h-5 text-[#ECC880]" />
+                ) : (
+                  <Menu className="w-5 h-5 text-[#ECC880]" />
+                )}
+              </button>
+
+              {/* Mobile Action Menu Dropdown / Popover */}
+              {showMobileActionMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs"
+                    onClick={() => setShowMobileActionMenu(false)}
+                  />
+                  <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl bg-[#0E1B2E] border-2 border-[#D6B477] shadow-2xl p-2.5 space-y-1 text-white animate-fade-in">
+                    <div className="px-3 py-1.5 border-b border-white/10 text-[10px] font-mono uppercase tracking-widest text-[#D6B477]">
+                      Protocol Controls
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setShowMobileActionMenu(false);
+                        setShowCardManagerModal(true);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-2.5 cursor-pointer text-[#ECC880]"
+                    >
+                      <ImageIcon className="w-4 h-4 text-[#ECC880]" />
+                      <span>Invitation Card Asset</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMobileActionMenu(false);
+                        setShowAddGuestModal(true);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-2.5 cursor-pointer text-white"
+                    >
+                      <Plus className="w-4 h-4 text-[#D6B477]" />
+                      <span>Add VIP / Offline Guest</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMobileActionMenu(false);
+                        exportRSVPsToCSV(records);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-2.5 cursor-pointer text-white"
+                    >
+                      <Download className="w-4 h-4 text-[#ECC880]" />
+                      <span>Download Bouncer List (CSV)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMobileActionMenu(false);
+                        loadRecords();
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-2.5 cursor-pointer text-white"
+                    >
+                      <RefreshCw className="w-4 h-4 text-[#ECC880]" />
+                      <span>Refresh Guest Registry</span>
+                    </button>
+
+                    <div className="my-1 border-t border-white/10" />
+
+                    <button
+                      onClick={() => {
+                        setShowMobileActionMenu(false);
+                        onBackToInvitation();
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold hover:bg-red-900/30 text-red-300 transition-colors flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <ArrowLeft className="w-4 h-4 text-red-400" />
+                      <span>Exit Protocol Desk</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
