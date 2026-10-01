@@ -89,6 +89,21 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
 
       if (res.success && res.data) {
         const savedRecord = res.data;
+
+        // Automatically dispatch RSVP received email in background
+        if (savedRecord.email && savedRecord.email.includes('@')) {
+          import('../lib/emailTemplates').then(({ generateWeddingEmail, sendEmailViaService }) => {
+            const emailData = generateWeddingEmail('acknowledgment', savedRecord);
+            sendEmailViaService({
+              to: savedRecord.email,
+              subject: emailData.subject,
+              html: emailData.html,
+              text: emailData.text,
+              apiKey: localStorage.getItem('ugoamaka26_resend_key') || undefined,
+            }).catch((err) => console.warn('Background auto email notice:', err));
+          });
+        }
+
         setIsSuccessAnimating(true);
         playCelebrationChime();
         if (attendance === 'accepted') {

@@ -42,7 +42,7 @@ export const RSVPConfirmation: React.FC<RSVPConfirmationProps> = ({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="p-6 sm:p-8 rounded-2xl bg-gradient-to-b from-white to-[#FAF7F2] border-2 border-[#D6B477] text-center shadow-xl relative overflow-hidden"
+        className="p-6 sm:p-8 rounded-2xl bg-gradient-to-b from-[#FAF5EA] via-[#F4EBD9] to-[#FAF5EA] border-2 border-[#D6B477] text-center shadow-xl relative overflow-hidden"
       >
         {/* Top Foil Banner */}
         <div className="absolute top-0 inset-x-0 h-1.5 gold-foil-gradient" />
@@ -74,11 +74,11 @@ export const RSVPConfirmation: React.FC<RSVPConfirmationProps> = ({
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-300 mb-3 shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0E1B2E] text-[#ECC880] border border-[#D6B477] mb-3 shadow-sm"
             >
-              <Clock className="w-3.5 h-3.5 text-amber-600 animate-spin-slow" />
-              <span className="text-[10px] font-bold tracking-widest uppercase">
-                Under Protocol Review
+              <Clock className="w-3.5 h-3.5 text-[#ECC880] animate-spin-slow" />
+              <span className="text-[10px] font-bold tracking-widest uppercase font-mono">
+                RSVP Received · Under Protocol Review
               </span>
             </motion.div>
           )
@@ -91,13 +91,13 @@ export const RSVPConfirmation: React.FC<RSVPConfirmationProps> = ({
         )}
 
         {/* Guest Greeting */}
-        <h3 className="font-display text-xl sm:text-2xl font-extrabold text-[#0E1B2E] tracking-wide uppercase">
+        <h3 className="font-display text-lg sm:text-xl font-extrabold text-[#0E1B2E] tracking-wide uppercase">
           THANK YOU, {record.full_name.toUpperCase()}
         </h3>
 
         {/* Reference Code Ribbon */}
         {isAccepted && (
-          <div className="my-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-[#D6B477]/60 shadow-xs">
+          <div className="my-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/90 border border-[#D6B477]/80 shadow-xs">
             <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
               Verification Ref:
             </span>
@@ -137,44 +137,32 @@ export const RSVPConfirmation: React.FC<RSVPConfirmationProps> = ({
                 </button>
               </>
             ) : (
-              <>
-                <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-left space-y-1.5">
-                  <p className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-amber-700" />
-                    Seat &amp; Table Allocation in Progress
+              <div className="p-4 rounded-2xl bg-white/90 border border-[#D6B477]/70 text-left space-y-2.5 shadow-xs">
+                <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
+                  <Clock className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>Curated Guest List Review in Progress</span>
+                </div>
+
+                <p className="text-[11px] text-[#0E1B2E]/80 leading-relaxed">
+                  To preserve an intimate and sacred banquet atmosphere, attendance is strictly restricted to our <strong>100-guest capacity</strong>.
+                </p>
+
+                <div className="p-2.5 rounded-xl bg-[#FAF5EA] border border-[#D6B477]/50 text-[11px] text-[#0E1B2E]/80 space-y-1">
+                  <p className="font-semibold text-[#0E1B2E]">
+                    🔒 Confidential Venue Protocol:
                   </p>
-                  <p className="text-[11px] text-amber-900/80 leading-relaxed">
-                    To maintain an intimate, secure celebration with allocated seating, our protocol team is reviewing seat assignments. You will receive an official approval notification and your personalized Digital Security Pass via WhatsApp/Email shortly.
+                  <p className="text-[10px] text-gray-600">
+                    Official venue address, assigned seating, and your personalized entry card are delivered exclusively via email once approved.
+                  </p>
+                  <p className="text-[10px] text-gray-500 font-mono pt-0.5">
+                    Notification target: <span className="font-bold text-[#0E1B2E]">{record.email}</span>
                   </p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-white border border-[#D6B477]/50 text-left space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5 text-[#5687AD]" />
-                    <span className="font-semibold text-gray-800">
-                      Friday, 13 November 2026 · 10:00 AM
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-[#5687AD]" />
-                    <span className="text-gray-700">
-                      Tee Scee Event Center, 6 Area 3, Garki, Abuja
-                    </span>
-                  </div>
-                  <div className="pt-1 text-[11px] text-[#5687AD] font-bold border-t border-[#D6B477]/30 flex justify-between">
-                    <span>Requested: {record.guest_count} Guest(s)</span>
-                    <span className="text-gray-500">Dress: Strictly Black-Tie</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setShowPass(true)}
-                  className="w-full py-2 px-3 rounded-xl bg-[#0E1B2E] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#142338] transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#ECC880]" />
-                  <span>Preview Pass &amp; Event Details</span>
-                </button>
-              </>
+                <p className="text-[10px] text-gray-500 text-center italic pt-1">
+                  You will receive an official approval email and WhatsApp confirmation once protocol seating is confirmed.
+                </p>
+              </div>
             )}
           </div>
         ) : (

@@ -14,6 +14,7 @@ import {
   DEFAULT_OFFICIAL_CARD_URL,
 } from '../lib/invitationCardAsset';
 import { VisualSeatingPlanner } from './VisualSeatingPlanner';
+import { EmailDispatchCenter } from './EmailDispatchCenter';
 import {
   ShieldCheck,
   Search,
@@ -42,6 +43,7 @@ import {
   ChevronRight,
   LayoutGrid,
   Menu,
+  Mail,
 } from 'lucide-react';
 import { WaxSeal } from './WaxSeal';
 
@@ -59,7 +61,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'waitlisted' | 'declined' | 'all'>('pending');
   const [relationshipFilter, setRelationshipFilter] = useState<string>('all');
-  const [dashboardView, setDashboardView] = useState<'registry' | 'seating'>('registry');
+  const [dashboardView, setDashboardView] = useState<'registry' | 'seating' | 'emails'>('registry');
   const [showMobileActionMenu, setShowMobileActionMenu] = useState(false);
 
   // Official Card Asset State
@@ -443,6 +445,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
                     <button
                       onClick={() => {
                         setShowMobileActionMenu(false);
+                        setDashboardView('emails');
+                      }}
+                      className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-2.5 cursor-pointer text-[#ECC880]"
+                    >
+                      <Mail className="w-4 h-4 text-[#ECC880]" />
+                      <span>Email &amp; Invitation Dispatcher</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowMobileActionMenu(false);
                         setShowCardManagerModal(true);
                       }}
                       className="w-full px-3 py-2 rounded-xl text-left text-xs font-bold hover:bg-white/10 transition-colors flex items-center gap-2.5 cursor-pointer text-[#ECC880]"
@@ -505,8 +518,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
-        {/* VIEW NAVIGATION TABS (REGISTRY vs VISUAL SEATING PLAN) */}
-        <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+        {/* VIEW NAVIGATION TABS (REGISTRY vs VISUAL SEATING PLAN vs EMAIL DISPATCHER) */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 pb-2">
           <button
             onClick={() => setDashboardView('registry')}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
@@ -530,9 +543,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
             <LayoutGrid className="w-4 h-4 text-[#D6B477]" />
             <span>Visual Seating &amp; Table Arrangement</span>
           </button>
+
+          <button
+            onClick={() => setDashboardView('emails')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+              dashboardView === 'emails'
+                ? 'bg-[#0E1B2E] text-[#ECC880] shadow-md'
+                : 'bg-white text-gray-700 hover:text-[#0E1B2E] border border-gray-200'
+            }`}
+          >
+            <Mail className="w-4 h-4 text-[#D6B477]" />
+            <span>Email &amp; Invitation Dispatcher</span>
+          </button>
         </div>
 
-        {dashboardView === 'seating' ? (
+        {dashboardView === 'emails' ? (
+          <EmailDispatchCenter
+            records={records}
+            onShowToast={showToast}
+            onRefreshRecords={loadRecords}
+          />
+        ) : dashboardView === 'seating' ? (
           <VisualSeatingPlanner
             records={records}
             onRefreshRecords={loadRecords}
@@ -874,6 +905,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
 
                       {isApproved && (
                         <>
+                          <button
+                            onClick={() => {
+                              setDashboardView('emails');
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-white hover:bg-gray-50 text-[#0E1B2E] border border-[#D6B477] text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                            title="Dispatch personalized email with invitation card & seating details"
+                          >
+                            <Mail className="w-3.5 h-3.5 text-[#D6B477]" />
+                            <span>Email Card</span>
+                          </button>
+
                           <button
                             onClick={() => handleSendWhatsAppPass(guest)}
                             className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
