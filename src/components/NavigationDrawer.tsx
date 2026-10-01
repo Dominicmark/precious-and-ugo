@@ -9,6 +9,7 @@ import {
   Send,
   MessageCircle,
   Shield,
+  ShieldCheck,
   Camera,
   Sparkles,
   Music,
@@ -24,6 +25,7 @@ interface NavigationDrawerProps {
   onOpenGifts: () => void;
   onReopenEnvelope: () => void;
   onOpenAdmin: () => void;
+  onOpenStatusLookup?: () => void;
 }
 
 export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
@@ -33,6 +35,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   onOpenGifts,
   onReopenEnvelope,
   onOpenAdmin,
+  onOpenStatusLookup,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -134,6 +137,20 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
 
               {/* Navigation Items */}
               <nav className="mt-5 space-y-1.5">
+                {/* Check RSVP Status / Digital Pass */}
+                {onOpenStatusLookup && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenStatusLookup();
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left font-serif-luxury text-sm font-bold text-[#0E1B2E] bg-white border border-[#D6B477]/60 hover:bg-[#FAF7F2] transition-colors cursor-pointer shadow-xs"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-[#D6B477]" />
+                    <span>Check RSVP Status / Gate Pass</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     onClose();
@@ -236,7 +253,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                 className="inline-flex items-center gap-1.5 text-[10px] text-[#0E1B2E]/40 hover:text-[#0E1B2E] transition-colors cursor-pointer pt-2"
               >
                 <Shield className="w-3 h-3 text-[#D6B477]" />
-                <span>Admin Management</span>
+                <span>Protocol &amp; Admin Desk</span>
               </button>
             </div>
           </motion.div>

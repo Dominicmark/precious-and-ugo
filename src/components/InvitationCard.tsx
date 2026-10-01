@@ -14,10 +14,11 @@ import { RSVPForm } from './RSVPForm';
 import { ContactButtons } from './ContactButtons';
 import { LoveStoryModal } from './LoveStoryModal';
 import { GiftRegistryModal } from './GiftRegistryModal';
+import { GuestStatusLookupModal } from './GuestStatusLookupModal';
 import { AudioPlayerToggle } from './AudioPlayerToggle';
 import { ParallaxContentContainer } from './ParallaxContentContainer';
 import { ScrollReveal } from './ScrollReveal';
-import { Menu, Shield } from 'lucide-react';
+import { Menu, Shield, ShieldCheck } from 'lucide-react';
 
 interface InvitationCardProps {
   onReopenEnvelope: () => void;
@@ -31,6 +32,7 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showLoveStory, setShowLoveStory] = useState(false);
   const [showGiftModal, setShowGiftModal] = useState(false);
+  const [showStatusLookup, setShowStatusLookup] = useState(false);
 
   const scrollToRSVP = () => {
     const el = document.getElementById('rsvp-section');
@@ -100,73 +102,64 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
           <EventDetails />
         </ParallaxContentContainer>
 
-        {/* SECTION 5: THE BELOVED COUPLE IN GOLDEN FRAME */}
+        {/* SECTION 5: REAL GOLDEN PORTRAIT FRAME */}
         <ParallaxContentContainer
           id="couple-section"
-          offsetRange={[16, -16]}
+          offsetRange={[20, -20]}
           depthScale={[0.985, 1.015]}
           revealDistance={24}
         >
           <CoupleGoldenFrame />
         </ParallaxContentContainer>
 
-        {/* SECTION 6: ATTIRE & NUPTIAL PALETTE (Fully Elaborated with Silhouettes) */}
+        {/* SECTION 6: DRESS CODE & PALETTE SHOWCASE */}
         <ParallaxContentContainer
           id="attire-section"
           offsetRange={[14, -14]}
-          revealDistance={22}
+          revealDistance={20}
         >
           <DressCodeShowcase />
         </ParallaxContentContainer>
 
-        {/* SECTION 7: GIFTS & BLESSINGS */}
+        {/* SECTION 7: GIFTS, BLESSINGS & REGISTRY */}
         <ParallaxContentContainer
-          id="gifts-section"
-          offsetRange={[16, -16]}
-          revealDistance={22}
+          offsetRange={[14, -14]}
+          revealDistance={20}
         >
           <GiftsShowcase />
         </ParallaxContentContainer>
 
-        {/* SECTION 8: FAQ ACCORDION */}
+        {/* SECTION 8: FAQ & STRICTLY BY INVITATION POLICY */}
         <ParallaxContentContainer
           id="faq-section"
-          offsetRange={[16, -16]}
-          revealDistance={22}
+          offsetRange={[12, -12]}
+          revealDistance={20}
         >
           <FAQShowcase />
         </ParallaxContentContainer>
 
-        {/* SCROLL TO RSVP GUIDE */}
-        <ScrollReveal direction="up" distance={16} duration={700}>
-          <ScrollToRsvpGuide label="SCROLL TO CONFIRM RSVP" />
-        </ScrollReveal>
-
-        {/* SECTION 9: RSVP EXPERIENCE */}
+        {/* SECTION 9: INTERACTIVE RSVP FORM */}
         <ParallaxContentContainer
           id="rsvp-section"
-          offsetRange={[20, -20]}
-          depthScale={[0.985, 1.015]}
-          revealDistance={28}
+          offsetRange={[16, -16]}
+          revealDistance={22}
         >
-          <div className="py-2">
-            <RSVPForm />
-          </div>
+          <RSVPForm />
         </ParallaxContentContainer>
 
-        {/* SECTION 10: WHATSAPP DIRECT CONTACT */}
+        {/* SECTION 10: WEDDING CONCIERGE & WHATSAPP HELP */}
         <ParallaxContentContainer
           id="contact-section"
-          offsetRange={[12, -12]}
+          offsetRange={[10, -10]}
           revealDistance={18}
         >
           <ContactButtons />
         </ParallaxContentContainer>
 
-        {/* SECTION 11: FOOTER (Mentored by Love · #UgoAmaka26) */}
+        {/* FOOTER */}
         <ParallaxContentContainer
-          offsetRange={[8, -8]}
-          revealDistance={16}
+          offsetRange={[6, -6]}
+          revealDistance={14}
         >
           <footer className="pt-8 pb-10 border-t border-[#D6B477]/40 text-center space-y-2">
             <ScrollReveal direction="up" distance={18} duration={850}>
@@ -181,15 +174,27 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
               </p>
             </ScrollReveal>
 
-            {/* Discreet Admin Portal Link */}
-            <div className="pt-4">
+            {/* Check RSVP Status Button */}
+            <div className="pt-3 flex items-center justify-center gap-4">
+              <button
+                onClick={() => setShowStatusLookup(true)}
+                type="button"
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-[#0E1B2E]/75 hover:text-[#5687AD] transition-colors cursor-pointer"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-[#D6B477]" />
+                <span>Check RSVP Status / Gate Pass</span>
+              </button>
+
+              <span className="text-gray-300">·</span>
+
+              {/* Discreet Admin Portal Link */}
               <button
                 onClick={onOpenAdmin}
                 type="button"
-                className="inline-flex items-center gap-1 text-[9px] tracking-wider uppercase text-[#0E1B2E]/35 hover:text-[#5687AD] transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 text-[10px] tracking-wider uppercase text-[#0E1B2E]/40 hover:text-[#5687AD] transition-colors cursor-pointer"
               >
-                <Shield className="w-2.5 h-2.5 text-[#D6B477]/60" />
-                <span>Admin Access</span>
+                <Shield className="w-3 h-3 text-[#D6B477]/60" />
+                <span>Admin Protocol Desk</span>
               </button>
             </div>
           </footer>
@@ -214,6 +219,7 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
         onOpenGifts={() => setShowGiftModal(true)}
         onReopenEnvelope={onReopenEnvelope}
         onOpenAdmin={onOpenAdmin}
+        onOpenStatusLookup={() => setShowStatusLookup(true)}
       />
 
       {/* Modals */}
@@ -225,6 +231,12 @@ export const InvitationCard: React.FC<InvitationCardProps> = ({
       <GiftRegistryModal
         isOpen={showGiftModal}
         onClose={() => setShowGiftModal(false)}
+      />
+
+      <GuestStatusLookupModal
+        isOpen={showStatusLookup}
+        onClose={() => setShowStatusLookup(false)}
+        onOpenRSVPForm={scrollToRSVP}
       />
     </div>
   );

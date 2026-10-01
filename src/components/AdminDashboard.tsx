@@ -1,12 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   getRSVPs,
+  updateRSVPStatus,
   calculateRSVPStats,
   exportRSVPsToCSV,
-  isSupabaseConfigured,
-  SUPABASE_SETUP_SQL,
 } from '../lib/supabase';
-import { RSVPRecord, RSVPStats } from '../types/rsvp';
+import { RSVPRecord, RSVPStats, RSVPApprovalStatus, GuestRelationship } from '../types/rsvp';
+import { DigitalSecurityPass } from './DigitalSecurityPass';
+import {
+  getOfficialCardUrl,
+  setOfficialCardUrl,
+  resetOfficialCardUrl,
+  DEFAULT_OFFICIAL_CARD_URL,
+} from '../lib/invitationCardAsset';
+import { VisualSeatingPlanner } from './VisualSeatingPlanner';
 import {
   ShieldCheck,
   Search,
@@ -17,25 +24,25 @@ import {
   XCircle,
   Clock,
   UserCheck,
-  Database,
   RefreshCw,
   Copy,
   Check,
   ArrowLeft,
   X,
   Eye,
-  Music,
-  Volume2,
+  MessageCircle,
+  Plus,
+  Edit2,
+  Sparkles,
   Upload,
+  Image as ImageIcon,
+  CheckCircle2,
+  Share2,
+  Layers,
+  ChevronRight,
+  LayoutGrid,
 } from 'lucide-react';
-import {
-  getCustomMusicUrl,
-  setCustomMusicUrl,
-  toggleBackgroundMusic,
-  isBgMusicPlaying,
-  DEFAULT_WEDDING_SONG_URL,
-  WEDDING_SONG_TITLE,
-} from '../lib/audio';
+import { WaxSeal } from './WaxSeal';
 
 interface AdminDashboardProps {
   onBackToInvitation: () => void;
@@ -49,27 +56,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
   const [records, setRecords] = useState<RSVPRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'accepted' | 'declined'>('all');
-  const [selectedGuest, setSelectedGuest] = useState<RSVPRecord | null>(null);
-  const [showSqlModal, setShowSqlModal] = useState(false);
-  const [showAddGuestModal, setShowAddGuestModal] = useState(false);
-  const [showMusicModal, setShowMusicModal] = useState(false);
-  const [musicUrlInput, setMusicUrlInput] = useState('');
-  const [musicPlaying, setMusicPlaying] = useState(false);
-  const [musicNotice, setMusicNotice] = useState<string | null>(null);
-  const [copiedSql, setCopiedSql] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'waitlisted' | 'declined' | 'all'>('pending');
+  const [relationshipFilter, setRelationshipFilter] = useState<string>('all');
+  const [dashboardView, setDashboardView] = useState<'registry' | 'seating'>('registry');
 
-  // Manual RSVP form state
+  // Official Card Asset State
+  const [officialCardUrl, setOfficialCardUrlState] = useState<string>(getOfficialCardUrl());
+  const [showCardManagerModal, setShowCardManagerModal] = useState(false);
+  const [cardUploadInputUrl, setCardUploadInputUrl] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Modals
+  const [selectedGuestForPass, setSelectedGuestForPass] = useState<RSVPRecord | null>(null);
+  const [editingGuest, setEditingGuest] = useState<RSVPRecord | null>(null);
+  const [editSeats, setEditSeats] = useState<number>(1);
+  const [editTable, setEditTable] = useState<string>('');
+  const [showAddGuestModal, setShowAddGuestModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [copiedRefId, setCopiedRefId] = useState<string | null>(null);
+
+  // Manual Add Form State
   const [manualName, setManualName] = useState('');
   const [manualPhone, setManualPhone] = useState('');
   const [manualEmail, setManualEmail] = useState('');
-  const [manualAttendance, setManualAttendance] = useState<'accepted' | 'declined'>('accepted');
-  const [manualCount, setManualCount] = useState<number>(1);
-  const [manualNotes, setManualNotes] = useState('');
+  const [manualRelationship, setManualRelationship] = useState<GuestRelationship>("Bride's Family / Guest");
+  const [manualSeats, setManualSeats] = useState<number>(1);
+  const [manualTable, setManualTable] = useState('');
   const [isSavingManual, setIsSavingManual] = useState(false);
 
-  // Authenticate PIN
   const adminPin = import.meta.env.VITE_ADMIN_PIN || 'ugoamaka2026';
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,41 +103,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
     }
   };
 
-  const handleSaveManualGuest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualName.trim() || !manualPhone.trim()) return;
-
-    setIsSavingManual(true);
-    try {
-      const { submitRSVP } = await import('../lib/supabase');
-      await submitRSVP({
-        full_name: manualName.trim(),
-        phone: manualPhone.trim(),
-        email: manualEmail.trim() || 'phone-rsvp@ugoamaka26.ng',
-        attendance: manualAttendance,
-        guest_count: manualAttendance === 'accepted' ? Number(manualCount) : 0,
-        guest_names: '',
-        dietary_or_notes: `[Logged by Admin] ${manualNotes.trim()}`,
-      });
-
-      // Reset and reload
-      setManualName('');
-      setManualPhone('');
-      setManualEmail('');
-      setManualNotes('');
-      setShowAddGuestModal(false);
-      await loadRecords();
-    } finally {
-      setIsSavingManual(false);
-    }
-  };
-
-
   const loadRecords = async () => {
     setIsLoading(true);
     try {
       const data = await getRSVPs();
       setRecords(data);
+    } catch (err) {
+      console.error('Error loading RSVPs:', err);
     } finally {
       setIsLoading(false);
     }
@@ -128,473 +121,831 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
     }
   }, [isAuthenticated]);
 
-  // Filtered guest list
-  const filteredRecords = useMemo(() => {
-    return records.filter((r) => {
-      const matchesSearch =
-        r.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (r.guest_names && r.guest_names.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      const matchesStatus =
-        statusFilter === 'all' ? true : r.attendance === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [records, searchQuery, statusFilter]);
-
   const stats: RSVPStats = useMemo(() => {
-    return calculateRSVPStats(records, 350);
+    return calculateRSVPStats(records, 100);
   }, [records]);
 
-  const handleCopySql = () => {
-    navigator.clipboard.writeText(SUPABASE_SETUP_SQL);
-    setCopiedSql(true);
-    setTimeout(() => setCopiedSql(false), 2000);
+  const capacityPercent = Math.min(100, Math.round((stats.total_allocated_seats / 100) * 100));
+
+  // Quick Approval
+  const handleQuickApprove = async (guest: RSVPRecord, seats: number) => {
+    const res = await updateRSVPStatus(guest.id, {
+      status: 'approved',
+      allocated_seats: seats,
+    });
+    if (res.success) {
+      showToast(`Approved ${guest.full_name} · ${seats} seat(s)`);
+      loadRecords();
+    }
   };
 
-  // Login Screen if not yet authenticated
+  // Quick Waitlist
+  const handleWaitlist = async (guest: RSVPRecord) => {
+    const res = await updateRSVPStatus(guest.id, { status: 'waitlisted' });
+    if (res.success) {
+      showToast(`Moved ${guest.full_name} to Waitlist`);
+      loadRecords();
+    }
+  };
+
+  // Quick Decline
+  const handleDecline = async (guest: RSVPRecord) => {
+    const res = await updateRSVPStatus(guest.id, { status: 'declined', allocated_seats: 0 });
+    if (res.success) {
+      showToast(`Declined ${guest.full_name}`);
+      loadRecords();
+    }
+  };
+
+  // Save Modal Edit
+  const handleSaveEdit = async () => {
+    if (!editingGuest) return;
+    const res = await updateRSVPStatus(editingGuest.id, {
+      status: 'approved',
+      allocated_seats: editSeats,
+      table_assignment: editTable.trim(),
+    });
+    if (res.success) {
+      showToast(`Updated reservation for ${editingGuest.full_name}`);
+      setEditingGuest(null);
+      loadRecords();
+    }
+  };
+
+  // Copy Reference Code
+  const handleCopyRef = (refCode: string) => {
+    navigator.clipboard.writeText(refCode);
+    setCopiedRefId(refCode);
+    setTimeout(() => setCopiedRefId(null), 2000);
+  };
+
+  // WhatsApp Pass Dispatch
+  const handleSendWhatsAppPass = (guest: RSVPRecord) => {
+    const cleanPhone = guest.phone.replace(/\D/g, '');
+    const seats = guest.allocated_seats || guest.guest_count || 1;
+    const tableText = guest.table_assignment ? ` at ${guest.table_assignment}` : '';
+    const message = `Dear ${guest.full_name},\n\nPrecious & Ugochukwu joyfully confirm your ${seats} reserved seat(s)${tableText} for their wedding on Friday, 13 November 2026.\n\n🎟️ Ref Code: ${guest.reference_code}\n📍 Venue: Tee Scee Event Center, 6 Area 3, Garki, Abuja\n⏰ Time: 10:00 AM Prompt\n👔 Dress Code: Strictly Black-Tie Formal Western Attire (No Traditional Attire)\n\nPlease keep your reference code handy for gate verification. We look forward to celebrating with you!\n\n#UgoAmaka26`;
+    
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  // Add Manual Guest
+  const handleSaveManualGuest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualName.trim() || !manualPhone.trim()) return;
+
+    setIsSavingManual(true);
+    try {
+      const { submitRSVP } = await import('../lib/supabase');
+      await submitRSVP({
+        full_name: manualName.trim(),
+        phone: manualPhone.trim(),
+        email: manualEmail.trim() || `${manualPhone.replace(/\D/g, '')}@ugoamaka26.ng`,
+        attendance: 'accepted',
+        status: 'approved',
+        guest_count: Number(manualSeats),
+        allocated_seats: Number(manualSeats),
+        relationship: manualRelationship,
+        table_assignment: manualTable.trim(),
+        dietary_or_notes: '[Added via Protocol Desk]',
+      });
+      showToast(`Added ${manualName} to guest registry`);
+      setShowAddGuestModal(false);
+      setManualName('');
+      setManualPhone('');
+      setManualEmail('');
+      setManualTable('');
+      loadRecords();
+    } catch {
+      alert('Failed to save manual guest.');
+    } finally {
+      setIsSavingManual(false);
+    }
+  };
+
+  // File Upload for Invitation Card Image (PNG, JPG, WebP)
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setOfficialCardUrl(result);
+        setOfficialCardUrlState(result);
+        showToast('Official Invitation Card image updated successfully!');
+      }
+      setIsUploadingImage(false);
+    };
+    reader.onerror = () => {
+      showToast('Error reading image file');
+      setIsUploadingImage(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveCardUrl = () => {
+    if (!cardUploadInputUrl.trim()) return;
+    setOfficialCardUrl(cardUploadInputUrl.trim());
+    setOfficialCardUrlState(cardUploadInputUrl.trim());
+    setCardUploadInputUrl('');
+    showToast('Official Card URL updated!');
+  };
+
+  const handleResetCard = () => {
+    resetOfficialCardUrl();
+    setOfficialCardUrlState(DEFAULT_OFFICIAL_CARD_URL);
+    showToast('Reset to default invitation artwork');
+  };
+
+  // Filtered List
+  const filteredRecords = useMemo(() => {
+    return records.filter((r) => {
+      if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+      if (relationshipFilter !== 'all' && r.relationship !== relationshipFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          r.full_name.toLowerCase().includes(q) ||
+          r.phone.toLowerCase().includes(q) ||
+          r.email.toLowerCase().includes(q) ||
+          (r.reference_code || '').toLowerCase().includes(q) ||
+          (r.table_assignment || '').toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [records, statusFilter, relationshipFilter, searchQuery]);
+
+  // LOGIN SCREEN
   if (!isAuthenticated) {
     return (
-      <div className="min-h-[85vh] flex items-center justify-center p-4">
-        <div className="w-full max-w-sm p-6 sm:p-8 rounded-2xl bg-white border-2 border-[#D6B477] shadow-2xl text-center">
-          <div className="w-12 h-12 rounded-full bg-[#0E1B2E] text-[#D6B477] flex items-center justify-center mx-auto mb-3 shadow-md">
-            <Lock className="w-6 h-6" />
+      <div className="min-h-screen bg-[#0E1B2E] flex items-center justify-center p-4">
+        <div className="w-full max-w-sm rounded-2xl bg-[#142338] border-2 border-[#D6B477] p-8 text-center shadow-2xl text-white">
+          <div className="w-14 h-14 rounded-full bg-[#0E1B2E] border border-[#D6B477] flex items-center justify-center mx-auto mb-4 shadow-inner">
+            <Lock className="w-6 h-6 text-[#ECC880]" />
           </div>
 
-          <h2 className="font-display text-xl font-extrabold text-[#0E1B2E] tracking-wider uppercase">
-            ADMINISTRATOR ACCESS
+          <h2 className="font-display text-xl font-bold uppercase tracking-wider text-[#ECC880]">
+            Protocol Desk
           </h2>
-          <p className="font-serif-luxury text-xs text-[#5687AD] font-semibold mt-1">
-            Precious &amp; Ugochukwu Wedding Management
+          <p className="text-xs text-white/70 mt-1 mb-6">
+            Bride &amp; Groom RSVP &amp; Card Management (#UgoAmaka26)
           </p>
 
-          <form onSubmit={handleLogin} className="mt-5 space-y-3.5">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-[11px] font-bold text-[#0E1B2E] uppercase tracking-wider text-left mb-1">
-                Enter Admin Passcode
-              </label>
               <input
                 type="password"
-                required
-                autoFocus
-                placeholder="Enter passcode..."
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#D6B477]/70 bg-[#FAF7F2]/40 text-sm text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#5687AD]"
+                placeholder="Enter Access Passcode"
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl bg-[#0E1B2E] border border-[#D6B477]/60 text-white placeholder-white/40 text-center font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-[#D6B477]"
               />
               {authError && (
-                <p className="text-[11px] text-[#8F2D25] font-semibold text-left mt-1.5">
-                  Invalid passcode. (Default: ugoamaka2026)
+                <p className="text-xs text-red-400 mt-2">
+                  Incorrect passcode. Please try again.
                 </p>
               )}
             </div>
 
             <button
               type="submit"
-              className="w-full py-2.5 px-4 rounded-xl font-display text-xs font-bold tracking-widest uppercase text-[#FAF7F2] bg-[#0E1B2E] hover:bg-[#5687AD] active:scale-95 transition-all shadow-md cursor-pointer"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D6B477] to-[#ECC880] text-[#0E1B2E] font-bold text-xs uppercase tracking-widest hover:brightness-105 transition-all shadow-lg cursor-pointer"
             >
-              UNLOCK DASHBOARD
+              Unlock Protocol Desk
             </button>
-          </form>
 
-          <div className="mt-6 pt-4 border-t border-[#D6B477]/30">
             <button
-              onClick={onBackToInvitation}
               type="button"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5687AD] hover:text-[#0E1B2E] transition-colors cursor-pointer"
+              onClick={onBackToInvitation}
+              className="w-full text-xs text-white/60 hover:text-white pt-2 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Return to Invitation</span>
+              <span>Return to Wedding Invitation</span>
             </button>
-          </div>
+          </form>
         </div>
       </div>
     );
   }
 
+  // MAIN DASHBOARD
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 py-8">
-      {/* Top Bar Navigation */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-[#D6B477]/50 mb-6">
-        <div>
-          <button
-            onClick={onBackToInvitation}
-            type="button"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5687AD] hover:text-[#0E1B2E] transition-colors mb-1 cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Invitation</span>
-          </button>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#0E1B2E] tracking-wide">
-            RSVP GUEST DIRECTORY
-          </h1>
-          <p className="font-serif-luxury text-xs text-[#5687AD] font-semibold tracking-wider uppercase mt-0.5">
-            #UgoAmaka26 · 13 November 2026 · Abuja
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Supabase status badge */}
-          <button
-            onClick={() => setShowSqlModal(true)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border cursor-pointer ${
-              isSupabaseConfigured
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                : 'bg-amber-50 text-amber-800 border-amber-300'
-            }`}
-            title="Click to view Supabase database configuration & SQL schema"
-          >
-            <Database className="w-3.5 h-3.5" />
-            <span>{isSupabaseConfigured ? 'Supabase Connected' : 'Local Storage Mode'}</span>
-          </button>
-
-          {/* Background Song Setup */}
-          <button
-            onClick={() => {
-              setMusicUrlInput(getCustomMusicUrl());
-              setMusicPlaying(isBgMusicPlaying());
-              setMusicNotice(null);
-              setShowMusicModal(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider text-[#0E1B2E] bg-[#FAF7F2] border border-[#D6B477] hover:bg-[#0E1B2E] hover:text-[#FAF7F2] transition-colors shadow-2xs cursor-pointer"
-            title="Configure or upload wedding background music"
-          >
-            <Music className="w-3.5 h-3.5 text-[#5687AD]" />
-            <span>Music Soundtrack</span>
-          </button>
-
-          {/* Log Manual RSVP */}
-          <button
-            onClick={() => setShowAddGuestModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider text-[#0E1B2E] bg-[#FAF7F2] border border-[#D6B477] hover:bg-[#0E1B2E] hover:text-[#FAF7F2] transition-colors shadow-2xs cursor-pointer"
-          >
-            <span>+ Log RSVP</span>
-          </button>
-
-          {/* Export to CSV */}
-          <button
-            onClick={() => exportRSVPsToCSV(filteredRecords)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider text-[#FAF7F2] bg-[#0E1B2E] hover:bg-[#5687AD] transition-colors shadow-sm cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-[#D6B477]" />
-            <span>EXPORT CSV</span>
-          </button>
-
-
-          {/* Refresh */}
-          <button
-            onClick={loadRecords}
-            disabled={isLoading}
-            className="p-1.5 rounded-lg text-[#0E1B2E] border border-[#D6B477]/70 bg-white hover:bg-[#FAF7F2] transition-colors cursor-pointer"
-            title="Refresh records"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-      </div>
-
-      {/* METRIC CARDS (Section 11 Requirements) */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-        {/* TOTAL INVITED */}
-        <div className="p-3.5 sm:p-4 rounded-xl bg-white border border-[#D6B477]/60 shadow-sm">
-          <div className="flex items-center gap-1.5 text-xs text-[#0E1B2E]/70 font-semibold mb-1">
-            <Users className="w-3.5 h-3.5 text-[#0E1B2E]" />
-            <span>TOTAL INVITED</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold font-display text-[#0E1B2E] tabular-nums">
-            {stats.total_invited}
-          </div>
-        </div>
-
-        {/* CONFIRMED */}
-        <div className="p-3.5 sm:p-4 rounded-xl bg-white border border-emerald-300 shadow-sm">
-          <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-semibold mb-1">
-            <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-            <span>CONFIRMED</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold font-display text-emerald-700 tabular-nums">
-            {stats.confirmed}
-          </div>
-        </div>
-
-        {/* DECLINED */}
-        <div className="p-3.5 sm:p-4 rounded-xl bg-white border border-rose-300 shadow-sm">
-          <div className="flex items-center gap-1.5 text-xs text-rose-800 font-semibold mb-1">
-            <XCircle className="w-3.5 h-3.5 text-rose-600" />
-            <span>DECLINED</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold font-display text-rose-700 tabular-nums">
-            {stats.declined}
-          </div>
-        </div>
-
-        {/* PENDING */}
-        <div className="p-3.5 sm:p-4 rounded-xl bg-white border border-amber-300 shadow-sm">
-          <div className="flex items-center gap-1.5 text-xs text-amber-800 font-semibold mb-1">
-            <Clock className="w-3.5 h-3.5 text-amber-600" />
-            <span>PENDING</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold font-display text-amber-700 tabular-nums">
-            {stats.pending}
-          </div>
-        </div>
-
-        {/* TOTAL ATTENDING */}
-        <div className="col-span-2 sm:col-span-1 p-3.5 sm:p-4 rounded-xl bg-[#0E1B2E] text-[#FAF7F2] border border-[#D6B477] shadow-md">
-          <div className="flex items-center gap-1.5 text-xs text-[#D6B477] font-semibold mb-1">
-            <UserCheck className="w-3.5 h-3.5 text-[#D6B477]" />
-            <span>TOTAL ATTENDING</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold font-display text-[#FAF7F2] tabular-nums">
-            {stats.total_attending}
-          </div>
-        </div>
-      </div>
-
-      {/* SEARCH AND FILTERS */}
-      <div className="p-4 rounded-xl bg-white border border-[#D6B477]/60 shadow-sm mb-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-        {/* Search */}
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-[#0E1B2E]/50 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search by name, phone, or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 rounded-lg border border-[#D6B477]/50 text-xs text-[#0E1B2E] focus:outline-none focus:ring-1 focus:ring-[#5687AD]"
-          />
-        </div>
-
-        {/* Filter buttons */}
-        <div className="flex items-center gap-1 p-1 bg-[#FAF7F2] rounded-lg w-full sm:w-auto">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-              statusFilter === 'all'
-                ? 'bg-[#0E1B2E] text-[#FAF7F2] shadow-sm'
-                : 'text-[#0E1B2E]/70 hover:text-[#0E1B2E]'
-            }`}
-          >
-            All ({records.length})
-          </button>
-          <button
-            onClick={() => setStatusFilter('accepted')}
-            className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-              statusFilter === 'accepted'
-                ? 'bg-emerald-700 text-white shadow-sm'
-                : 'text-[#0E1B2E]/70 hover:text-emerald-800'
-            }`}
-          >
-            Accepted ({stats.confirmed})
-          </button>
-          <button
-            onClick={() => setStatusFilter('declined')}
-            className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
-              statusFilter === 'declined'
-                ? 'bg-rose-700 text-white shadow-sm'
-                : 'text-[#0E1B2E]/70 hover:text-rose-800'
-            }`}
-          >
-            Declined ({stats.declined})
-          </button>
-        </div>
-      </div>
-
-      {/* GUEST TABLE (Section 11) */}
-      <div className="rounded-xl bg-white border border-[#D6B477]/60 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#0E1B2E] text-[#D6B477] font-display text-[11px] tracking-wider uppercase">
-                <th className="py-3 px-4">Guest</th>
-                <th className="py-3 px-4">Phone</th>
-                <th className="py-3 px-4">Email</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-center">Guests</th>
-                <th className="py-3 px-4">Date</th>
-                <th className="py-3 px-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#D6B477]/30 text-xs">
-              {filteredRecords.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-[#0E1B2E]/60">
-                    No RSVP records found matching your filter.
-                  </td>
-                </tr>
-              ) : (
-                filteredRecords.map((r) => (
-                  <tr key={r.id} className="hover:bg-[#FAF7F2]/40 transition-colors">
-                    <td className="py-3 px-4 font-semibold text-[#0E1B2E]">
-                      <div>{r.full_name}</div>
-                      {r.guest_names && (
-                        <div className="text-[10px] text-[#5687AD] font-normal mt-0.5">
-                          With: {r.guest_names}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-[#0E1B2E]/80 font-mono text-[11px]">
-                      {r.phone}
-                    </td>
-                    <td className="py-3 px-4 text-[#0E1B2E]/80">
-                      {r.email}
-                    </td>
-                    <td className="py-3 px-4">
-                      {r.attendance === 'accepted' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                          <CheckCircle className="w-3 h-3 text-emerald-600" />
-                          Accepted
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
-                          <XCircle className="w-3 h-3 text-rose-600" />
-                          Declined
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center font-bold text-[#0E1B2E] tabular-nums">
-                      {r.attendance === 'accepted' ? r.guest_count : 0}
-                    </td>
-                    <td className="py-3 px-4 text-[#0E1B2E]/60 text-[11px] tabular-nums">
-                      {new Date(r.created_at).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => setSelectedGuest(r)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold text-[#5687AD] bg-[#FAF7F2] hover:bg-[#0E1B2E] hover:text-[#FAF7F2] transition-colors cursor-pointer"
-                      >
-                        <Eye className="w-3 h-3" />
-                        <span>View</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Guest Details Modal */}
-      {selectedGuest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="w-full max-w-md p-6 rounded-2xl bg-white border-2 border-[#D6B477] shadow-2xl relative">
-            <button
-              onClick={() => setSelectedGuest(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-[#0E1B2E]/60 hover:text-[#0E1B2E] hover:bg-[#FAF7F2] cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <h3 className="font-display text-lg font-bold text-[#0E1B2E] uppercase">
-              GUEST RSVP DETAILS
-            </h3>
-            <p className="text-xs text-[#5687AD] font-semibold mb-4">
-              Submitted on {new Date(selectedGuest.created_at).toLocaleString()}
-            </p>
-
-            <div className="space-y-2.5 text-xs text-[#0E1B2E] bg-[#FAF7F2]/40 p-4 rounded-xl border border-[#D6B477]/40 mb-4">
-              <div>
-                <span className="font-bold text-[#0E1B2E]/60 uppercase block text-[10px]">Guest Name</span>
-                <span className="font-semibold text-sm">{selectedGuest.full_name}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="font-bold text-[#0E1B2E]/60 uppercase block text-[10px]">Phone</span>
-                  <span>{selectedGuest.phone}</span>
-                </div>
-                <div>
-                  <span className="font-bold text-[#0E1B2E]/60 uppercase block text-[10px]">Email</span>
-                  <span>{selectedGuest.email}</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="font-bold text-[#0E1B2E]/60 uppercase block text-[10px]">Attendance</span>
-                  <span className={`font-bold ${selectedGuest.attendance === 'accepted' ? 'text-emerald-700' : 'text-rose-700'}`}>
-                    {selectedGuest.attendance === 'accepted' ? 'Joyfully Accepts' : 'Regretfully Declines'}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-bold text-[#0E1B2E]/60 uppercase block text-[10px]">Seats Reserved</span>
-                  <span className="font-bold">{selectedGuest.guest_count}</span>
-                </div>
-              </div>
-              {selectedGuest.guest_names && (
-                <div>
-                  <span className="font-bold text-[#0E1B2E]/60 uppercase block text-[10px]">Accompanying Guests</span>
-                  <span>{selectedGuest.guest_names}</span>
-                </div>
-              )}
-              {selectedGuest.dietary_or_notes && (
-                <div>
-                  <span className="font-bold text-[#0E1B2E]/60 uppercase block text-[10px]">Notes &amp; Wishes</span>
-                  <p className="italic bg-white p-2 rounded border border-[#D6B477]/40 mt-0.5">
-                    "{selectedGuest.dietary_or_notes}"
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={() => setSelectedGuest(null)}
-                className="px-4 py-2 rounded-lg font-display text-xs font-bold uppercase tracking-wider text-[#FAF7F2] bg-[#0E1B2E] hover:bg-[#5687AD] cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#FAF7F2] text-[#0E1B2E] pb-24">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 px-4 py-2.5 rounded-xl bg-[#0E1B2E] text-white border border-[#D6B477] shadow-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
+          <Sparkles className="w-4 h-4 text-[#ECC880]" />
+          <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Supabase Connection Setup & SQL Modal */}
-      {showSqlModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="w-full max-w-xl p-6 rounded-2xl bg-white border-2 border-[#D6B477] shadow-2xl relative max-h-[90vh] overflow-y-auto">
+      {/* LUXURY EXECUTIVE NAVBAR */}
+      <header className="sticky top-0 z-30 bg-[#0E1B2E] text-white border-b border-[#D6B477]/30 px-4 sm:px-8 py-3.5 shadow-md">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowSqlModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-[#0E1B2E]/60 hover:text-[#0E1B2E] hover:bg-[#FAF7F2] cursor-pointer"
+              onClick={onBackToInvitation}
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#ECC880] transition-colors cursor-pointer"
+              title="Return to Public Invitation"
             >
-              <X className="w-4 h-4" />
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-display text-sm sm:text-base font-bold uppercase tracking-wider text-white">
+                  Precious &amp; Ugochukwu
+                </h1>
+                <span className="text-[10px] text-[#ECC880] font-mono font-bold px-1.5 py-0.5 rounded bg-white/10">
+                  #UgoAmaka26
+                </span>
+              </div>
+              <p className="text-[10px] text-white/60 uppercase font-serif-luxury tracking-widest">
+                VIP Protocol Desk &amp; Seating Allocation
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Manage Official Card Button */}
+            <button
+              onClick={() => setShowCardManagerModal(true)}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[#ECC880] text-xs font-bold transition-all flex items-center gap-1.5 border border-[#D6B477]/50 shadow-xs cursor-pointer"
+            >
+              <ImageIcon className="w-3.5 h-3.5 text-[#ECC880]" />
+              <span className="hidden sm:inline">Invitation Card Asset</span>
             </button>
 
-            <div className="flex items-center gap-2 mb-2">
-              <Database className="w-5 h-5 text-[#5687AD]" />
-              <h3 className="font-display text-base font-bold text-[#0E1B2E] uppercase">
-                Supabase Database Integration
-              </h3>
+            {/* Add Manual Guest */}
+            <button
+              onClick={() => setShowAddGuestModal(true)}
+              className="px-3 py-1.5 rounded-lg bg-[#D6B477] text-[#0E1B2E] text-xs font-bold hover:brightness-105 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Add Guest</span>
+            </button>
+
+            {/* Download Bouncer CSV */}
+            <button
+              onClick={() => exportRSVPsToCSV(records)}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all flex items-center gap-1.5 border border-white/20 cursor-pointer"
+              title="Download CSV for Gate Security Personnel"
+            >
+              <Download className="w-3.5 h-3.5 text-[#ECC880]" />
+              <span className="hidden sm:inline">Bouncer List</span>
+            </button>
+
+            <button
+              onClick={loadRecords}
+              disabled={isLoading}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              title="Refresh Registry"
+            >
+              <RefreshCw className={`w-4 h-4 text-[#ECC880] ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
+        {/* VIEW NAVIGATION TABS (REGISTRY vs VISUAL SEATING PLAN) */}
+        <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+          <button
+            onClick={() => setDashboardView('registry')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+              dashboardView === 'registry'
+                ? 'bg-[#0E1B2E] text-[#ECC880] shadow-md'
+                : 'bg-white text-gray-700 hover:text-[#0E1B2E] border border-gray-200'
+            }`}
+          >
+            <Users className="w-4 h-4 text-[#D6B477]" />
+            <span>Guest Registry &amp; Approvals ({records.length})</span>
+          </button>
+
+          <button
+            onClick={() => setDashboardView('seating')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+              dashboardView === 'seating'
+                ? 'bg-[#0E1B2E] text-[#ECC880] shadow-md'
+                : 'bg-white text-gray-700 hover:text-[#0E1B2E] border border-gray-200'
+            }`}
+          >
+            <LayoutGrid className="w-4 h-4 text-[#D6B477]" />
+            <span>Visual Seating &amp; Table Arrangement</span>
+          </button>
+        </div>
+
+        {dashboardView === 'seating' ? (
+          <VisualSeatingPlanner
+            records={records}
+            onRefreshRecords={loadRecords}
+            onShowToast={showToast}
+          />
+        ) : (
+          <>
+            {/* CAPACITY PROGRESS & HIGH-LEVEL OVERVIEW BAR */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#D6B477]/50 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest block">
+              Venue Seating Capacity
+            </span>
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-2xl font-black text-[#0E1B2E]">
+                {stats.total_allocated_seats}
+              </span>
+              <span className="text-xs text-gray-500 font-semibold">
+                of 100 Seats Allocated ({capacityPercent}% Booked)
+              </span>
             </div>
+            {/* Progress Bar */}
+            <div className="w-full sm:w-80 h-2 bg-gray-100 rounded-full overflow-hidden mt-2">
+              <div
+                className="h-full bg-gradient-to-r from-[#D6B477] to-[#0E1B2E] transition-all duration-500 rounded-full"
+                style={{ width: `${capacityPercent}%` }}
+              />
+            </div>
+          </div>
 
-            <p className="text-xs text-[#0E1B2E]/80 mb-3">
-              The application stores RSVPs in local storage automatically and can synchronize in real-time to a Supabase project when environment variables <code className="bg-[#FAF7F2] px-1 py-0.5 rounded font-mono text-[11px]">VITE_SUPABASE_URL</code> and <code className="bg-[#FAF7F2] px-1 py-0.5 rounded font-mono text-[11px]">VITE_SUPABASE_ANON_KEY</code> are provided.
+          <div className="flex items-center gap-4 text-xs text-gray-600 divide-x divide-gray-200">
+            <div className="pr-4">
+              <span className="text-gray-400 block text-[10px] uppercase font-bold">Total Requests</span>
+              <span className="font-bold text-[#0E1B2E] text-base">{stats.total_requests}</span>
+            </div>
+            <div className="px-4">
+              <span className="text-amber-600 block text-[10px] uppercase font-bold">Needs Decision</span>
+              <span className="font-bold text-amber-700 text-base">{stats.pending_review}</span>
+            </div>
+            <div className="pl-4">
+              <span className="text-emerald-600 block text-[10px] uppercase font-bold">Approved</span>
+              <span className="font-bold text-emerald-700 text-base">{stats.approved_guests}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* DECISION METRIC TILES */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          {/* Pending Tile */}
+          <div
+            onClick={() => setStatusFilter('pending')}
+            className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+              statusFilter === 'pending'
+                ? 'bg-amber-50/80 border-amber-400 ring-2 ring-amber-300'
+                : 'bg-white border-gray-200 hover:bg-amber-50/30'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider">
+                Pending Review
+              </span>
+              <Clock className="w-4 h-4 text-amber-600" />
+            </div>
+            <p className="font-display text-3xl font-black text-amber-950 mt-1">
+              {stats.pending_review}
             </p>
+            <span className="text-[10px] text-amber-800 font-semibold block mt-1">
+              Action required by couple
+            </span>
+          </div>
 
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs font-bold text-[#0E1B2E] uppercase">SQL Migration for Supabase:</span>
+          {/* Approved Tile */}
+          <div
+            onClick={() => setStatusFilter('approved')}
+            className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+              statusFilter === 'approved'
+                ? 'bg-emerald-50/80 border-emerald-400 ring-2 ring-emerald-300'
+                : 'bg-white border-gray-200 hover:bg-emerald-50/30'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">
+                Approved Guests
+              </span>
+              <CheckCircle className="w-4 h-4 text-emerald-600" />
+            </div>
+            <p className="font-display text-3xl font-black text-emerald-950 mt-1">
+              {stats.approved_guests}
+            </p>
+            <span className="text-[10px] text-emerald-800 font-semibold block mt-1">
+              {stats.total_allocated_seats} seats officially granted
+            </span>
+          </div>
+
+          {/* Waitlist Tile */}
+          <div
+            onClick={() => setStatusFilter('waitlisted')}
+            className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+              statusFilter === 'waitlisted'
+                ? 'bg-blue-50/80 border-blue-400 ring-2 ring-blue-300'
+                : 'bg-white border-gray-200 hover:bg-blue-50/30'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-blue-900 uppercase tracking-wider">
+                Waitlisted
+              </span>
+              <Users className="w-4 h-4 text-blue-600" />
+            </div>
+            <p className="font-display text-3xl font-black text-blue-950 mt-1">
+              {stats.waitlisted}
+            </p>
+            <span className="text-[10px] text-blue-800 font-semibold block mt-1">
+              Standby seat allocation
+            </span>
+          </div>
+
+          {/* Declined Tile */}
+          <div
+            onClick={() => setStatusFilter('declined')}
+            className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer shadow-xs ${
+              statusFilter === 'declined'
+                ? 'bg-gray-100 border-gray-400 ring-2 ring-gray-300'
+                : 'bg-white border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                Declined
+              </span>
+              <XCircle className="w-4 h-4 text-gray-500" />
+            </div>
+            <p className="font-display text-3xl font-black text-gray-800 mt-1">
+              {stats.declined}
+            </p>
+            <span className="text-[10px] text-gray-600 font-semibold block mt-1">
+              Regretfully cannot attend
+            </span>
+          </div>
+        </div>
+
+        {/* SEARCH & SEGMENTED CONTROLS BAR */}
+        <div className="p-3.5 rounded-2xl bg-white border border-[#D6B477]/40 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
+          {/* Segmented Filter Buttons */}
+          <div className="flex flex-wrap items-center gap-1 w-full md:w-auto p-1 bg-gray-100 rounded-xl">
+            {(['pending', 'approved', 'waitlisted', 'declined', 'all'] as const).map((st) => (
               <button
-                onClick={handleCopySql}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#0E1B2E] text-[#FAF7F2] text-xs font-medium cursor-pointer"
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                  statusFilter === st
+                    ? 'bg-[#0E1B2E] text-[#ECC880] shadow-xs'
+                    : 'text-gray-600 hover:text-[#0E1B2E]'
+                }`}
               >
-                {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedSql ? 'Copied!' : 'Copy SQL'}</span>
+                {st === 'pending'
+                  ? `Pending (${stats.pending_review})`
+                  : st === 'approved'
+                  ? `Approved (${stats.approved_guests})`
+                  : st === 'waitlisted'
+                  ? `Waitlist (${stats.waitlisted})`
+                  : st === 'declined'
+                  ? `Declined (${stats.declined})`
+                  : `All (${records.length})`}
+              </button>
+            ))}
+          </div>
+
+          {/* Affiliation Dropdown & Search Bar */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <select
+              value={relationshipFilter}
+              onChange={(e) => setRelationshipFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#D6B477]"
+            >
+              <option value="all">All Affiliations</option>
+              <option value="Bride's Family / Guest">Bride&apos;s Guests</option>
+              <option value="Groom's Family / Guest">Groom&apos;s Guests</option>
+              <option value="VIP Dignitary">VIP Dignitaries</option>
+              <option value="Mutual Friend / Colleague">Mutual Friends</option>
+            </select>
+
+            <div className="relative flex-1 md:w-64">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search name, phone, ref..."
+                className="w-full px-3 py-2 pl-8 rounded-xl bg-gray-50 border border-gray-200 text-xs text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#D6B477]"
+              />
+              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" />
+            </div>
+          </div>
+        </div>
+
+        {/* GUEST CARDS / TABLE VIEW */}
+        <div className="rounded-2xl bg-white border border-[#D6B477]/50 shadow-sm overflow-hidden">
+          {filteredRecords.length === 0 ? (
+            <div className="py-16 text-center text-gray-500">
+              <UserCheck className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-gray-700">No guests found in this filter</p>
+              <p className="text-xs text-gray-400">Change your filter or search query</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {filteredRecords.map((guest) => {
+                const isPending = guest.status === 'pending';
+                const isApproved = guest.status === 'approved';
+                const isCopied = copiedRefId === guest.reference_code;
+
+                return (
+                  <div
+                    key={guest.id}
+                    className="p-4 sm:p-5 hover:bg-gray-50/80 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                  >
+                    {/* Left: Guest Details */}
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-display text-base font-bold text-[#0E1B2E] uppercase">
+                          {guest.full_name}
+                        </span>
+
+                        {/* Copyable Ref Code Badge */}
+                        <button
+                          onClick={() => handleCopyRef(guest.reference_code)}
+                          title="Click to copy Reference Code"
+                          className="inline-flex items-center gap-1 font-mono text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-[#0E1B2E] text-[#ECC880] hover:bg-[#142338] transition-colors cursor-pointer"
+                        >
+                          <span>{guest.reference_code}</span>
+                          {isCopied ? (
+                            <Check className="w-3 h-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3 h-3 text-white/50" />
+                          )}
+                        </button>
+
+                        {/* Clean Status Badges */}
+                        {isPending && (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-[10px] font-bold uppercase border border-amber-300">
+                            Pending Review
+                          </span>
+                        )}
+                        {isApproved && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold uppercase border border-emerald-300">
+                            Approved ({guest.allocated_seats || 1} Seat)
+                          </span>
+                        )}
+                        {guest.status === 'waitlisted' && (
+                          <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 text-[10px] font-bold uppercase border border-blue-300">
+                            Waitlist
+                          </span>
+                        )}
+                        {guest.status === 'declined' && (
+                          <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-[10px] font-bold uppercase border border-gray-300">
+                            Declined
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Unboxed Metadata with Typographic Separator */}
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                        <span>📱 {guest.phone}</span>
+                        <span aria-hidden="true" className="text-gray-300">·</span>
+                        <span>✉️ {guest.email}</span>
+                        <span aria-hidden="true" className="text-gray-300">·</span>
+                        <span className="text-[#5687AD] font-semibold">{guest.relationship || 'Guest'}</span>
+                        {guest.table_assignment && (
+                          <>
+                            <span aria-hidden="true" className="text-gray-300">·</span>
+                            <span className="text-amber-900 font-bold bg-amber-50 px-2 py-0.5 rounded">
+                              🍽️ {guest.table_assignment}
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      {guest.guest_names && guest.guest_names !== guest.full_name && (
+                        <p className="text-xs text-gray-500 italic">
+                          Accompanying: {guest.guest_names}
+                        </p>
+                      )}
+
+                      {guest.dietary_or_notes && (
+                        <p className="text-xs text-gray-600 bg-gray-50/80 p-2 rounded-lg border border-gray-200/60 max-w-xl">
+                          &quot;{guest.dietary_or_notes}&quot;
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Right: Action Buttons */}
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      {isPending && (
+                        <>
+                          <button
+                            onClick={() => handleQuickApprove(guest, 1)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                            title="Approve for 1 Seat"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Approve (1)</span>
+                          </button>
+
+                          <button
+                            onClick={() => handleQuickApprove(guest, 2)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                            title="Approve for 2 Seats"
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                            <span>Approve (2)</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setEditingGuest(guest);
+                              setEditSeats(guest.allocated_seats || guest.guest_count || 1);
+                              setEditTable(guest.table_assignment || '');
+                            }}
+                            className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer"
+                            title="Assign Custom Table or Seats"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => handleWaitlist(guest)}
+                            className="px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            Waitlist
+                          </button>
+
+                          <button
+                            onClick={() => handleDecline(guest)}
+                            className="px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            Decline
+                          </button>
+                        </>
+                      )}
+
+                      {isApproved && (
+                        <>
+                          <button
+                            onClick={() => handleSendWhatsAppPass(guest)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                            title="Send official pass via WhatsApp"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>WhatsApp Pass</span>
+                          </button>
+
+                          <button
+                            onClick={() => setSelectedGuestForPass(guest)}
+                            className="px-3 py-1.5 rounded-xl bg-[#0E1B2E] hover:bg-[#142338] text-[#ECC880] text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                            title="View Gate Pass & Official Card"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Pass &amp; Card</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setEditingGuest(guest);
+                              setEditSeats(guest.allocated_seats || 1);
+                              setEditTable(guest.table_assignment || '');
+                            }}
+                            className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors cursor-pointer"
+                            title="Edit Table or Seats"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
+
+                      {(guest.status === 'waitlisted' || guest.status === 'declined') && (
+                        <button
+                          onClick={() => handleQuickApprove(guest, 1)}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Reinstate / Approve
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+          </>
+        )}
+      </main>
+
+      {/* MODAL 1: VIEW DIGITAL PASS & ATTACHED CARD */}
+      {selectedGuestForPass && (
+        <DigitalSecurityPass
+          record={selectedGuestForPass}
+          onClose={() => setSelectedGuestForPass(null)}
+        />
+      )}
+
+      {/* MODAL 2: OFFICIAL INVITATION CARD ASSET MANAGER */}
+      {showCardManagerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs overflow-y-auto">
+          <div className="relative w-full max-w-lg rounded-2xl bg-[#0E1B2E] border-2 border-[#D6B477] text-white p-6 shadow-2xl space-y-4 my-auto">
+            {/* Gold Bar */}
+            <div className="absolute top-0 inset-x-0 h-1.5 gold-foil-gradient rounded-t-2xl" />
+
+            <div className="flex items-center justify-between pb-3 border-b border-[#D6B477]/30">
+              <div>
+                <h3 className="font-display text-base font-bold uppercase text-[#ECC880]">
+                  Official Invitation Card Asset
+                </h3>
+                <p className="text-xs text-white/60">
+                  Upload your high-res wedding card (PNG, JPG, or PDF image)
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCardManagerModal(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <pre className="p-3 bg-[#0E1B2E] text-[#FAF7F2] rounded-xl text-[11px] font-mono overflow-x-auto max-h-56 leading-relaxed select-all">
-              {SUPABASE_SETUP_SQL}
-            </pre>
+            {/* Current Card Preview */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold text-[#D6B477] uppercase tracking-wider block">
+                Current Attached Card Preview:
+              </span>
+              <div className="relative rounded-xl overflow-hidden border border-[#D6B477]/50 bg-black/60 max-h-64 flex items-center justify-center">
+                <img
+                  src={officialCardUrl}
+                  alt="Official Invitation Card"
+                  className="w-full h-full object-contain max-h-60"
+                />
+              </div>
+            </div>
 
-            <div className="mt-4 flex justify-end">
+            {/* Upload Method 1: File Picker */}
+            <div className="p-4 rounded-xl bg-white/5 border border-dashed border-[#D6B477]/60 text-center space-y-2">
+              <Upload className="w-8 h-8 text-[#ECC880] mx-auto" />
+              <div>
+                <p className="text-xs font-bold text-white">
+                  Upload New Card Graphic (PNG / JPEG / WebP)
+                </p>
+                <p className="text-[11px] text-white/50">
+                  Select your designer&apos;s exported invitation graphic from your device
+                </p>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+
               <button
-                onClick={() => setShowSqlModal(false)}
-                className="px-4 py-2 rounded-lg font-display text-xs font-bold uppercase tracking-wider text-[#FAF7F2] bg-[#0E1B2E] hover:bg-[#5687AD] cursor-pointer"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingImage}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#D6B477] to-[#ECC880] text-[#0E1B2E] text-xs font-bold uppercase tracking-wider hover:brightness-105 transition-all cursor-pointer shadow-md"
+              >
+                {isUploadingImage ? 'Reading Image...' : 'Choose File from Device'}
+              </button>
+            </div>
+
+            {/* Upload Method 2: Web URL / Cloudinary */}
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-bold text-[#D6B477] uppercase tracking-wider">
+                Or Paste Image Link (Cloudinary / S3 / Direct Image URL):
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={cardUploadInputUrl}
+                  onChange={(e) => setCardUploadInputUrl(e.target.value)}
+                  placeholder="https://res.cloudinary.com/.../card.jpg"
+                  className="flex-1 px-3 py-2 rounded-xl bg-black/40 border border-white/20 text-xs text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#D6B477]"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveCardUrl}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-[#D6B477]/60 text-xs font-bold text-white cursor-pointer"
+                >
+                  Save URL
+                </button>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="pt-2 flex items-center justify-between border-t border-white/10">
+              <button
+                type="button"
+                onClick={handleResetCard}
+                className="text-[11px] text-white/50 hover:text-white underline cursor-pointer"
+              >
+                Reset to default artwork
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowCardManagerModal(false)}
+                className="px-4 py-2 rounded-xl bg-[#ECC880] text-[#0E1B2E] text-xs font-bold cursor-pointer hover:brightness-105"
               >
                 Done
               </button>
@@ -603,299 +954,206 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToInvitati
         </div>
       )}
 
-      {/* Manual RSVP Logging Modal */}
-      {showAddGuestModal && (
+      {/* MODAL 3: CUSTOM SEAT & TABLE EDIT MODAL */}
+      {editingGuest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="w-full max-w-md p-6 rounded-2xl bg-white border-2 border-[#D6B477] shadow-2xl relative">
-            <button
-              onClick={() => setShowAddGuestModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-[#0E1B2E]/60 hover:text-[#0E1B2E] hover:bg-[#FAF7F2] cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+          <div className="w-full max-w-sm rounded-2xl bg-white border-2 border-[#D6B477] p-6 shadow-2xl text-left space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <h3 className="font-display text-sm font-bold uppercase text-[#0E1B2E]">
+                Set Seat &amp; Table Allocation
+              </h3>
+              <button
+                onClick={() => setEditingGuest(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-            <h3 className="font-display text-base font-bold text-[#0E1B2E] uppercase">
-              Log Offline / Phone RSVP
-            </h3>
-            <p className="text-xs text-[#5687AD] font-semibold mb-4">
-              Directly record an RSVP response received via phone, SMS, or committee liaison.
+            <p className="text-xs text-gray-600">
+              Guest: <strong>{editingGuest.full_name}</strong> ({editingGuest.reference_code})
             </p>
 
-            <form onSubmit={handleSaveManualGuest} className="space-y-3 text-xs">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                Approved Seat Count
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setEditSeats(num)}
+                    className={`py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                      editSeats === num
+                        ? 'bg-[#0E1B2E] text-white border-[#D6B477]'
+                        : 'bg-white text-gray-700 border-gray-200'
+                    }`}
+                  >
+                    {num} {num === 1 ? 'Seat' : 'Seats'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                Table Assignment
+              </label>
+              <input
+                type="text"
+                value={editTable}
+                onChange={(e) => setEditTable(e.target.value)}
+                placeholder="e.g. Table 4 - Presidential"
+                className="w-full px-3 py-2 rounded-xl bg-gray-50 border border-gray-300 text-xs text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#D6B477]"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingGuest(null)}
+                className="px-3 py-2 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                className="px-4 py-2 rounded-xl bg-[#0E1B2E] text-[#ECC880] text-xs font-bold hover:bg-[#142338] transition-colors cursor-pointer"
+              >
+                Confirm &amp; Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: MANUAL ADD GUEST */}
+      {showAddGuestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl bg-white border-2 border-[#D6B477] p-6 shadow-2xl text-left space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <h3 className="font-display text-sm font-bold uppercase text-[#0E1B2E]">
+                Add VIP / Offline Guest
+              </h3>
+              <button
+                onClick={() => setShowAddGuestModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveManualGuest} className="space-y-3">
               <div>
-                <label className="block font-bold text-[#0E1B2E] uppercase mb-1">
-                  Guest Full Name *
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  Full Name &amp; Title *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Chief O. Okeke"
                   value={manualName}
                   onChange={(e) => setManualName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#D6B477]/70 text-xs text-[#0E1B2E] focus:outline-none focus:ring-1 focus:ring-[#5687AD]"
+                  placeholder="e.g. Chief &amp; Mrs. Emeka Okoye"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#D6B477]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-bold text-[#0E1B2E] uppercase mb-1">
-                    Phone *
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                    Phone / WhatsApp *
                   </label>
                   <input
                     type="tel"
                     required
-                    placeholder="+234..."
                     value={manualPhone}
                     onChange={(e) => setManualPhone(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[#D6B477]/70 text-xs text-[#0E1B2E] focus:outline-none focus:ring-1 focus:ring-[#5687AD]"
+                    placeholder="+234..."
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#D6B477]"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-[#0E1B2E] uppercase mb-1">
-                    Email (Optional)
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                    Email
                   </label>
                   <input
                     type="email"
-                    placeholder="guest@email.com"
                     value={manualEmail}
                     onChange={(e) => setManualEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[#D6B477]/70 text-xs text-[#0E1B2E] focus:outline-none focus:ring-1 focus:ring-[#5687AD]"
+                    placeholder="email@..."
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#D6B477]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-bold text-[#0E1B2E] uppercase mb-1">
-                    Attendance
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                    Affiliation
                   </label>
                   <select
-                    value={manualAttendance}
-                    onChange={(e) => setManualAttendance(e.target.value as 'accepted' | 'declined')}
-                    className="w-full px-3 py-2 rounded-lg border border-[#D6B477]/70 text-xs text-[#0E1B2E] focus:outline-none"
+                    value={manualRelationship}
+                    onChange={(e) => setManualRelationship(e.target.value as GuestRelationship)}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#D6B477]"
                   >
-                    <option value="accepted">Joyfully Accepts</option>
-                    <option value="declined">Regretfully Declines</option>
+                    <option value="Bride's Family / Guest">Bride&apos;s Guest</option>
+                    <option value="Groom's Family / Guest">Groom&apos;s Guest</option>
+                    <option value="VIP Dignitary">VIP Dignitary</option>
+                    <option value="Mutual Friend / Colleague">Mutual Friend</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block font-bold text-[#0E1B2E] uppercase mb-1">
-                    Seats Reserved
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                    Seats
                   </label>
                   <select
-                    disabled={manualAttendance === 'declined'}
-                    value={manualCount}
-                    onChange={(e) => setManualCount(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-lg border border-[#D6B477]/70 text-xs text-[#0E1B2E] focus:outline-none disabled:opacity-50"
+                    value={manualSeats}
+                    onChange={(e) => setManualSeats(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#D6B477]"
                   >
-                    <option value={1}>1 Guest</option>
-                    <option value={2}>2 Guests</option>
-                    <option value={3}>3 Guests</option>
-                    <option value={4}>4 Guests</option>
+                    <option value={1}>1 Seat</option>
+                    <option value={2}>2 Seats</option>
+                    <option value={3}>3 Seats</option>
+                    <option value={4}>4 Seats</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-[#0E1B2E] uppercase mb-1">
-                  Notes / VIP Designation (Optional)
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  Table Assignment
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Groom VIP relative table, special dietary..."
-                  value={manualNotes}
-                  onChange={(e) => setManualNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#D6B477]/70 text-xs text-[#0E1B2E] focus:outline-none focus:ring-1 focus:ring-[#5687AD]"
+                  value={manualTable}
+                  onChange={(e) => setManualTable(e.target.value)}
+                  placeholder="e.g. Table 1 - High Table"
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#D6B477]"
                 />
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
+              <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setShowAddGuestModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg border border-[#D6B477]/70 text-xs font-semibold text-[#0E1B2E] hover:bg-[#FAF7F2] cursor-pointer"
+                  className="px-3 py-2 rounded-xl bg-gray-100 text-gray-700 text-xs font-bold hover:bg-gray-200 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingManual}
-                  className="px-4 py-1.5 rounded-lg font-display text-xs font-bold uppercase tracking-wider text-[#FAF7F2] bg-[#0E1B2E] hover:bg-[#5687AD] cursor-pointer disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-[#0E1B2E] text-[#ECC880] text-xs font-bold hover:bg-[#142338] transition-colors cursor-pointer"
                 >
-                  {isSavingManual ? 'Saving...' : 'Save Guest'}
+                  {isSavingManual ? 'Saving...' : 'Save to Registry'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {/* Background Music Configuration Modal */}
-      {showMusicModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="w-full max-w-md p-6 rounded-2xl bg-white border-2 border-[#D6B477] shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setShowMusicModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-[#0E1B2E]/60 hover:text-[#0E1B2E] hover:bg-[#FAF7F2] cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-full bg-[#0E1B2E] text-[#D6B477] flex items-center justify-center">
-                <Music className="w-4 h-4" />
-              </div>
-              <h3 className="font-display text-base font-bold text-[#0E1B2E] uppercase">
-                Wedding Background Music
-              </h3>
-            </div>
-            <p className="text-xs text-[#0E1B2E]/70 mb-4">
-              Configure the romantic song playing gently in the background when guests open the digital invitation.
-            </p>
-
-            {musicNotice && (
-              <div className="mb-4 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{musicNotice}</span>
-              </div>
-            )}
-
-            {/* Audio Preview & Toggle Player */}
-            <div className="p-3.5 rounded-xl bg-[#FAF7F2] border border-[#D6B477]/50 mb-4 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#0E1B2E] block">
-                  Soundtrack Status
-                </span>
-                <span className="text-xs text-[#5687AD] font-medium">
-                  {musicPlaying ? 'Currently Playing ♪' : 'Currently Muted'}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const state = toggleBackgroundMusic();
-                  setMusicPlaying(state);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0E1B2E] text-[#FAF7F2] text-xs font-semibold uppercase tracking-wider hover:bg-[#1A3152] transition-colors cursor-pointer"
-              >
-                <Volume2 className="w-3.5 h-3.5 text-[#D6B477]" />
-                <span>{musicPlaying ? 'Pause Audio' : 'Preview Song'}</span>
-              </button>
-            </div>
-
-            {/* Method A: Paste Audio URL */}
-            <div className="space-y-3 mb-5">
-              <div>
-                <label className="block text-xs font-bold text-[#0E1B2E] uppercase mb-1">
-                  Option 1: Direct Audio URL (MP3 / M4A / WAV)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://.../wedding_song.mp3"
-                  value={musicUrlInput}
-                  onChange={(e) => setMusicUrlInput(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#D6B477]/70 text-xs text-[#0E1B2E] focus:outline-none focus:ring-1 focus:ring-[#5687AD]"
-                />
-                <p className="text-[10px] text-[#0E1B2E]/60 mt-1">
-                  Works with Cloudinary audio links, Dropbox direct links, Google Drive direct links, or AWS S3 MP3s.
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomMusicUrl(musicUrlInput);
-                    setMusicNotice('Audio URL successfully updated and saved!');
-                    setMusicPlaying(isBgMusicPlaying());
-                    setTimeout(() => setMusicNotice(null), 3000);
-                  }}
-                  className="px-3.5 py-1.5 rounded-lg font-display text-xs font-bold uppercase tracking-wider text-[#FAF7F2] bg-[#0E1B2E] hover:bg-[#5687AD] cursor-pointer"
-                >
-                  Save Soundtrack URL
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMusicUrlInput(DEFAULT_WEDDING_SONG_URL);
-                    setCustomMusicUrl(DEFAULT_WEDDING_SONG_URL);
-                    setMusicNotice(`Restored default song: ${WEDDING_SONG_TITLE}`);
-                    setMusicPlaying(isBgMusicPlaying());
-                    setTimeout(() => setMusicNotice(null), 3000);
-                  }}
-                  className="px-3.5 py-1.5 rounded-lg border border-[#D6B477]/70 text-xs font-semibold text-[#0E1B2E] hover:bg-[#FAF7F2] cursor-pointer"
-                >
-                  Reset to Default Song
-                </button>
-              </div>
-            </div>
-
-            {/* Method B: Upload from Device */}
-            <div className="pt-3 border-t border-[#D6B477]/30 space-y-2 mb-4">
-              <label className="block text-xs font-bold text-[#0E1B2E] uppercase">
-                Option 2: Upload Audio File From Device
-              </label>
-              <div className="p-3 border-2 border-dashed border-[#D6B477]/60 rounded-xl text-center bg-[#FAF7F2]/50 hover:bg-[#FAF7F2] transition-colors">
-                <input
-                  type="file"
-                  accept="audio/*"
-                  id="admin-audio-upload"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (uploadEvt) => {
-                      const dataUrl = uploadEvt.target?.result as string;
-                      if (dataUrl) {
-                        setMusicUrlInput(`[Local File: ${file.name}]`);
-                        setCustomMusicUrl(dataUrl);
-                        setMusicNotice(`Loaded and saved "${file.name}"!`);
-                        setMusicPlaying(isBgMusicPlaying());
-                        setTimeout(() => setMusicNotice(null), 4000);
-                      }
-                    };
-                    reader.readAsDataURL(file);
-                  }}
-                />
-                <label
-                  htmlFor="admin-audio-upload"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#0E1B2E] bg-white border border-[#D6B477] shadow-2xs hover:bg-[#0E1B2E] hover:text-[#FAF7F2] transition-colors cursor-pointer"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Choose Audio File (.mp3, .m4a, .wav)</span>
-                </label>
-                <p className="text-[10px] text-[#0E1B2E]/60 mt-1">
-                  Upload your favorite couple song directly from your phone or computer.
-                </p>
-              </div>
-            </div>
-
-            {/* How it plays */}
-            <div className="p-3 rounded-lg bg-sky-50/70 border border-sky-200 text-[11px] text-[#0E1B2E]/80 leading-relaxed space-y-1">
-              <div className="font-bold text-[#0E1B2E]">How Guests Hear the Music:</div>
-              <div>
-                1. Browsers require a user tap before playing audio. When guests tap the screen to break the wax seal and open the physical envelope, audio playback begins smoothly in the background.
-              </div>
-              <div>
-                2. Guests can always mute or unmute anytime using the luxury "Music" button on the invitation header.
-              </div>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-[#D6B477]/40 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowMusicModal(false)}
-                className="px-4 py-1.5 rounded-lg font-display text-xs font-bold uppercase tracking-wider text-[#FAF7F2] bg-[#0E1B2E] hover:bg-[#5687AD] cursor-pointer"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
-

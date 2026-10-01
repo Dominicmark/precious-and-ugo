@@ -2,8 +2,21 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { submitRSVP } from '../lib/supabase';
 import { RSVPConfirmation } from './RSVPConfirmation';
-import { RSVPRecord } from '../types/rsvp';
-import { Send, Phone, Mail, Check, X, Users, HeartHandshake, Sparkles, MessageCircle } from 'lucide-react';
+import { GuestStatusLookupModal } from './GuestStatusLookupModal';
+import { RSVPRecord, GuestRelationship } from '../types/rsvp';
+import {
+  Send,
+  Phone,
+  Mail,
+  Check,
+  X,
+  Users,
+  HeartHandshake,
+  Sparkles,
+  MessageCircle,
+  ShieldAlert,
+  Search,
+} from 'lucide-react';
 import { fireWeddingConfetti } from '../lib/confetti';
 import { playCelebrationChime } from '../lib/audio';
 
@@ -24,12 +37,14 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
   const [attendance, setAttendance] = useState<'accepted' | 'declined'>('accepted');
   const [guestCount, setGuestCount] = useState<number>(1);
   const [guestNames, setGuestNames] = useState('');
+  const [relationship, setRelationship] = useState<GuestRelationship>("Bride's Family / Guest");
   const [dietaryOrNotes, setDietaryOrNotes] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessAnimating, setIsSuccessAnimating] = useState(false);
   const [submittedData, setSubmittedData] = useState<RSVPRecord | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showStatusLookup, setShowStatusLookup] = useState(false);
 
   // Check URL params to prefill guest name
   React.useEffect(() => {
@@ -46,11 +61,11 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
 
     // Form validation
     if (!fullName.trim()) {
-      setErrorMsg('Please enter your full name.');
+      setErrorMsg('Please enter your full name and title.');
       return;
     }
     if (!phone.trim()) {
-      setErrorMsg('Please enter your phone number.');
+      setErrorMsg('Please enter your WhatsApp or mobile phone number.');
       return;
     }
     if (!email.trim() || !email.includes('@')) {
@@ -61,8 +76,6 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
     setIsSubmitting(true);
 
     try {
-      const notesCombined = dietaryOrNotes.trim();
-
       const res = await submitRSVP({
         full_name: fullName.trim(),
         phone: phone.trim(),
@@ -70,7 +83,8 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
         attendance,
         guest_count: attendance === 'accepted' ? Number(guestCount) : 0,
         guest_names: attendance === 'accepted' ? guestNames.trim() : '',
-        dietary_or_notes: notesCombined,
+        relationship,
+        dietary_or_notes: dietaryOrNotes.trim(),
       });
 
       if (res.success && res.data) {
@@ -80,12 +94,11 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
         if (attendance === 'accepted') {
           fireWeddingConfetti();
         }
-        // Brief pause to display the elegant immediate feedback animation
         setTimeout(() => {
           setSubmittedData(savedRecord);
           setIsSuccessAnimating(false);
           onSuccess?.();
-        }, 950);
+        }, 900);
       } else {
         setErrorMsg('Unable to submit your RSVP. Please check your connection and retry.');
       }
@@ -96,339 +109,272 @@ export const RSVPForm: React.FC<RSVPFormProps> = ({
     }
   };
 
-
   const handleReset = () => {
     setSubmittedData(null);
     setFullName('');
     setPhone('');
     setEmail('');
-    setAttendance('accepted');
     setGuestCount(1);
     setGuestNames('');
     setDietaryOrNotes('');
-    setErrorMsg(null);
+    setAttendance('accepted');
   };
 
+  if (submittedData) {
+    return <RSVPConfirmation record={submittedData} onReset={handleReset} />;
+  }
+
   return (
-    <div className="w-full max-w-[460px] mx-auto">
-      <AnimatePresence mode="wait">
-        {submittedData ? (
-          <RSVPConfirmation
-            key="confirmed"
-            guestName={submittedData.full_name}
-            attendance={submittedData.attendance}
-            guestCount={submittedData.guest_count}
-            onReset={handleReset}
-          />
-        ) : (
-          <motion.div
-            key="form"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.35 }}
-            className="p-6 sm:p-7 rounded-2xl bg-white/95 border-2 border-[#D6B477]/80 shadow-2xl relative overflow-hidden"
-          >
-            {/* Subtle Immediate Success Feedback Overlay */}
-            <AnimatePresence>
-              {isSuccessAnimating && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="absolute inset-0 z-40 bg-[#FAF7F2]/95 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 text-center select-none"
-                >
-                  {/* Subtle Expanding Ripple Rings */}
-                  <div className="relative mb-3 flex items-center justify-center">
-                    <motion.div
-                      initial={{ scale: 0.8, opacity: 0.8 }}
-                      animate={{ scale: 1.6, opacity: 0 }}
-                      transition={{ duration: 0.9, ease: 'easeOut', repeat: Infinity }}
-                      className="absolute w-16 h-16 rounded-full border-2 border-[#8FB5D1]"
-                    />
-                    <motion.div
-                      initial={{ scale: 0.6, opacity: 0.6 }}
-                      animate={{ scale: 1.3, opacity: 0 }}
-                      transition={{ duration: 0.9, delay: 0.15, ease: 'easeOut', repeat: Infinity }}
-                      className="absolute w-16 h-16 rounded-full border border-[#D6B477]"
-                    />
+    <>
+      <div className="relative rounded-2xl bg-[#FAF7F2] border-2 border-[#D6B477] p-5 sm:p-7 shadow-xl">
+        {/* Top Gold Bar */}
+        <div className="absolute top-0 inset-x-0 h-1.5 gold-foil-gradient rounded-t-2xl" />
 
-                    {/* Checkmark Circle Icon */}
-                    <motion.div
-                      initial={{ scale: 0, rotate: -25 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: 'spring', stiffness: 350, damping: 20 }}
-                      className="relative w-16 h-16 rounded-full bg-gradient-to-br from-[#0E1B2E] to-[#1A3152] border-2 border-[#D6B477] flex items-center justify-center shadow-xl"
-                    >
-                      <motion.svg
-                        className="w-8 h-8 text-[#FAF7F2]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <motion.path
-                          d="M20 6L9 17l-5-5"
-                          initial={{ pathLength: 0, opacity: 0 }}
-                          animate={{ pathLength: 1, opacity: 1 }}
-                          transition={{ duration: 0.4, ease: 'easeOut', delay: 0.12 }}
-                        />
-                      </motion.svg>
-                    </motion.div>
-                  </div>
+        {/* Header & Protocol Notice */}
+        <div className="text-center mb-5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#8FB5D1]/15 text-[#5687AD] border border-[#8FB5D1]/40 mb-2">
+            <Sparkles className="w-3 h-3 text-[#D6B477]" />
+            <span className="font-serif-luxury text-[11px] tracking-widest font-bold uppercase">
+              Strictly by Invitation · Allocated Seating
+            </span>
+          </div>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.18, duration: 0.3 }}
-                  >
-                    <span className="inline-block px-3 py-0.5 rounded-full bg-[#8FB5D1]/20 text-[#5687AD] border border-[#8FB5D1]/40 text-[10px] font-bold tracking-widest uppercase mb-1">
-                      Success
-                    </span>
-                    <h4 className="font-display text-lg font-bold uppercase tracking-wider text-[#0E1B2E]">
-                      RSVP Recorded!
-                    </h4>
-                    <p className="font-serif-luxury text-xs text-[#5687AD] font-semibold mt-0.5">
-                      Thank you, {fullName.trim()} · Finalizing details...
-                    </p>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          <h2 className="font-display text-xl sm:text-2xl font-bold text-[#0E1B2E] uppercase tracking-wider">
+            Confirm Your Attendance
+          </h2>
+          <p className="font-serif-luxury text-xs sm:text-sm text-[#5687AD] mt-1">
+            Please register your details to receive your official table allocation and digital gate security pass.
+          </p>
 
-            {/* Modal Close Button if displayed in modal */}
-            {isModal && onClose && (
-              <button
-                onClick={onClose}
-                type="button"
-                className="absolute top-4 right-4 p-1.5 rounded-full text-[#0E1B2E]/60 hover:text-[#0E1B2E] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
-                aria-label="Close RSVP modal"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
+          {/* Quick Status Check Link */}
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setShowStatusLookup(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0E1B2E] hover:text-[#5687AD] underline underline-offset-4 decoration-[#D6B477] transition-colors cursor-pointer"
+            >
+              <Search className="w-3.5 h-3.5 text-[#D6B477]" />
+              <span>Already submitted? Check your RSVP Status / Pass</span>
+            </button>
+          </div>
+        </div>
 
-            {/* Header */}
-            <div className="text-center mb-6">
-              <span className="font-serif-luxury text-xs tracking-[0.25em] text-[#5687AD] uppercase font-bold">
-                Kindly Respond
-              </span>
-              <h3 className="font-display text-2xl font-extrabold text-[#0E1B2E] tracking-widest mt-1">
-                R.S.V.P.
-              </h3>
-              <p className="font-serif-luxury text-xs text-[#5687AD] font-semibold tracking-wider uppercase mt-1">
-                Kindly RSVP by 15 October 2026
-              </p>
-            </div>
-
-            {errorMsg && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium text-center">
-                {errorMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Full Name */}
-              <div>
-                <label className="block text-xs font-bold tracking-wider text-[#0E1B2E] uppercase mb-1">
-                  Full Name <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Chief & Mrs. O. Adeleke"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#D6B477]/70 bg-[#FAF7F2]/60 text-sm text-[#0E1B2E] placeholder-[#0E1B2E]/40 focus:outline-none focus:ring-2 focus:ring-[#8FB5D1] focus:border-transparent transition-all"
-                />
-              </div>
-
-              {/* Phone & Email */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold tracking-wider text-[#0E1B2E] uppercase mb-1">
-                    Phone Number <span className="text-rose-600">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="+234 803 000 0000"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D6B477]/70 bg-[#FAF7F2]/60 text-sm text-[#0E1B2E] placeholder-[#0E1B2E]/40 focus:outline-none focus:ring-2 focus:ring-[#8FB5D1] focus:border-transparent transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold tracking-wider text-[#0E1B2E] uppercase mb-1">
-                    Email Address <span className="text-rose-600">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="guest@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D6B477]/70 bg-[#FAF7F2]/60 text-sm text-[#0E1B2E] placeholder-[#0E1B2E]/40 focus:outline-none focus:ring-2 focus:ring-[#8FB5D1] focus:border-transparent transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Attendance Choice */}
-              <div>
-                <label className="block text-xs font-bold tracking-wider text-[#0E1B2E] uppercase mb-1.5">
-                  Will you be attending? <span className="text-rose-600">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setAttendance('accepted')}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold tracking-wider uppercase transition-all cursor-pointer ${
-                      attendance === 'accepted'
-                        ? 'bg-[#0E1B2E] text-[#FAF7F2] border-[#D6B477] shadow-md'
-                        : 'bg-[#FAF7F2]/80 text-[#0E1B2E] border-[#D6B477]/50 hover:bg-[#FAF7F2]'
-                    }`}
-                  >
-                    <Check className={`w-4 h-4 ${attendance === 'accepted' ? 'text-[#D6B477]' : 'text-[#0E1B2E]/60'}`} />
-                    <span>Joyfully Accepts</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setAttendance('declined')}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold tracking-wider uppercase transition-all cursor-pointer ${
-                      attendance === 'declined'
-                        ? 'bg-slate-700 text-white border-slate-700 shadow-md'
-                        : 'bg-[#FAF7F2]/80 text-[#0E1B2E] border-[#D6B477]/50 hover:bg-[#FAF7F2]'
-                    }`}
-                  >
-                    <X className={`w-4 h-4 ${attendance === 'declined' ? 'text-white' : 'text-[#0E1B2E]/60'}`} />
-                    <span>Regretfully Declines</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Conditional guest count & names if attending */}
-              {attendance === 'accepted' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-3 pt-1"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-1">
-                      <label className="block text-xs font-bold tracking-wider text-[#0E1B2E] uppercase mb-1">
-                        Guests
-                      </label>
-                      <select
-                        value={guestCount}
-                        onChange={(e) => setGuestCount(Number(e.target.value))}
-                        className="w-full px-3 py-2.5 rounded-xl border border-[#D6B477]/70 bg-[#FAF7F2]/60 text-sm text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#8FB5D1] font-semibold"
-                      >
-                        <option value={1}>1 Guest</option>
-                        <option value={2}>2 Guests</option>
-                        <option value={3}>3 Guests</option>
-                        <option value={4}>4 Guests</option>
-                      </select>
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-bold tracking-wider text-[#0E1B2E] uppercase mb-1">
-                        Accompanying Guest Names
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Mrs. Mary Mark"
-                        value={guestNames}
-                        onChange={(e) => setGuestNames(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#D6B477]/70 bg-[#FAF7F2]/60 text-sm text-[#0E1B2E] placeholder-[#0E1B2E]/40 focus:outline-none focus:ring-2 focus:ring-[#8FB5D1] transition-all"
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-
-              {/* Warm Wishes or Congratulatory Note to the Couple */}
-              <div>
-                <label className="block text-xs font-bold tracking-wider text-[#0E1B2E] uppercase mb-1">
-                  Warm Wishes or Congratulatory Note (Optional)
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Leave a heartfelt congratulatory message for the couple..."
-                  value={dietaryOrNotes}
-                  onChange={(e) => setDietaryOrNotes(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-[#D6B477]/70 bg-[#FAF7F2]/60 text-xs text-[#0E1B2E] placeholder-[#0E1B2E]/40 focus:outline-none focus:ring-2 focus:ring-[#8FB5D1] transition-all resize-none"
-                />
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting || isSuccessAnimating}
-                className={`w-full py-3.5 px-6 rounded-xl font-display text-xs font-bold tracking-[0.2em] uppercase border shadow-lg transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer ${
-                  isSuccessAnimating
-                    ? 'bg-emerald-900 text-emerald-100 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.35)] scale-[1.01]'
-                    : 'bg-[#0E1B2E] text-[#FAF7F2] border-[#D6B477] hover:bg-[#1A3152] hover:border-[#8FB5D1] active:scale-[0.98]'
-                } disabled:opacity-85`}
-              >
-                {isSuccessAnimating ? (
-                  <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="flex items-center justify-center gap-2 text-emerald-200"
-                  >
-                    <motion.div
-                      initial={{ scale: 0, rotate: -45 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                      className="w-4 h-4 rounded-full bg-emerald-400 text-[#0E1B2E] flex items-center justify-center"
-                    >
-                      <Check className="w-3 h-3 stroke-[3]" />
-                    </motion.div>
-                    <span className="tracking-[0.25em]">RSVP RECORDED!</span>
-                    <Sparkles className="w-3.5 h-3.5 text-[#D6B477] animate-pulse" />
-                  </motion.div>
-                ) : isSubmitting ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-[#D6B477] border-t-transparent rounded-full animate-spin" />
-                    <span>SAVING RSVP...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-3.5 h-3.5 text-[#D6B477]" />
-                    <span>CONFIRM RSVP</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* Contact Details Footer */}
-            <div className="mt-5 pt-4 border-t border-[#D6B477]/40 text-center">
-              <p className="font-serif-luxury text-xs text-[#0E1B2E]/80 font-medium mb-1.5">
-                Questions or special accommodations contact:
-              </p>
-              <div className="flex items-center justify-center">
-                <a
-                  href={`https://wa.me/2348030000000?text=${encodeURIComponent(
-                    'Hello Precious & Ugochukwu! I have a question regarding the wedding celebration (#UgoAmaka26).'
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-[#D6B477]/60 text-xs font-semibold text-[#0E1B2E] hover:text-[#25D366] hover:border-[#25D366] shadow-2xs transition-all"
-                >
-                  <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
-                  <span>WhatsApp: +234 803 000 0000</span>
-                </a>
-              </div>
-            </div>
-          </motion.div>
+        {errorMsg && (
+          <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium text-center">
+            {errorMsg}
+          </div>
         )}
-      </AnimatePresence>
-    </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 text-left">
+          {/* Attendance Selection */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setAttendance('accepted')}
+              className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                attendance === 'accepted'
+                  ? 'bg-[#0E1B2E] text-white border-[#D6B477] shadow-md ring-2 ring-[#D6B477]/40'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-[#D6B477]/50'
+              }`}
+            >
+              <Check className={`w-4 h-4 ${attendance === 'accepted' ? 'text-[#ECC880]' : 'text-gray-400'}`} />
+              <span className="font-display text-xs font-bold uppercase tracking-wider">
+                Accepts with Joy
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAttendance('declined')}
+              className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                attendance === 'declined'
+                  ? 'bg-[#0E1B2E] text-white border-[#D6B477] shadow-md ring-2 ring-[#D6B477]/40'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-[#D6B477]/50'
+              }`}
+            >
+              <X className={`w-4 h-4 ${attendance === 'declined' ? 'text-red-400' : 'text-gray-400'}`} />
+              <span className="font-display text-xs font-bold uppercase tracking-wider">
+                Regretfully Declines
+              </span>
+            </button>
+          </div>
+
+          {/* Full Name */}
+          <div>
+            <label className="block text-xs font-bold text-[#0E1B2E] uppercase tracking-wider mb-1">
+              Full Name &amp; Title *
+            </label>
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="e.g. Dr. &amp; Mrs. Chinedu Eze"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#D6B477]/70 text-sm text-[#0E1B2E] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D6B477]/50"
+            />
+          </div>
+
+          {/* Phone & Email in 2 columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-[#0E1B2E] uppercase tracking-wider mb-1">
+                WhatsApp / Phone *
+              </label>
+              <div className="relative">
+                <input
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+234 803 000 0000"
+                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl bg-white border border-[#D6B477]/70 text-sm text-[#0E1B2E] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D6B477]/50"
+                />
+                <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#0E1B2E] uppercase tracking-wider mb-1">
+                Email Address *
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="chinedu@example.com"
+                  className="w-full px-3.5 py-2.5 pl-9 rounded-xl bg-white border border-[#D6B477]/70 text-sm text-[#0E1B2E] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D6B477]/50"
+                />
+                <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+              </div>
+            </div>
+          </div>
+
+          {/* Relationship / Guest Of */}
+          <div>
+            <label className="block text-xs font-bold text-[#0E1B2E] uppercase tracking-wider mb-1">
+              Guest Of / Affiliation
+            </label>
+            <select
+              value={relationship}
+              onChange={(e) => setRelationship(e.target.value as GuestRelationship)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#D6B477]/70 text-sm text-[#0E1B2E] focus:outline-none focus:ring-2 focus:ring-[#D6B477]/50"
+            >
+              <option value="Bride's Family / Guest">Bride&apos;s Family / Guest (Amaka)</option>
+              <option value="Groom's Family / Guest">Groom&apos;s Family / Guest (Ugo)</option>
+              <option value="Mutual Friend / Colleague">Mutual Friend / Colleague</option>
+              <option value="VIP Dignitary">VIP Dignitary / Protocol</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          {/* If Attending: Requested Seats & Accompanying Names */}
+          {attendance === 'accepted' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-3 pt-1"
+            >
+              <div>
+                <label className="block text-xs font-bold text-[#0E1B2E] uppercase tracking-wider mb-1">
+                  Requested Seats Allocation
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGuestCount(1)}
+                    className={`py-2 px-3 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                      guestCount === 1
+                        ? 'bg-[#0E1B2E] text-white border-[#D6B477]'
+                        : 'bg-white text-gray-700 border-gray-200'
+                    }`}
+                  >
+                    1 Seat (Solo)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGuestCount(2)}
+                    className={`py-2 px-3 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                      guestCount === 2
+                        ? 'bg-[#0E1B2E] text-white border-[#D6B477]'
+                        : 'bg-white text-gray-700 border-gray-200'
+                    }`}
+                  >
+                    2 Seats (Plus One)
+                  </button>
+                </div>
+              </div>
+
+              {guestCount === 2 && (
+                <div>
+                  <label className="block text-xs font-bold text-[#0E1B2E] uppercase tracking-wider mb-1">
+                    Accompanying Guest Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={guestNames}
+                    onChange={(e) => setGuestNames(e.target.value)}
+                    placeholder="e.g. Mrs. Ngozi Eze"
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#D6B477]/70 text-sm text-[#0E1B2E] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D6B477]/50"
+                  />
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Dietary Notes or Wishes */}
+          <div>
+            <label className="block text-xs font-bold text-[#0E1B2E] uppercase tracking-wider mb-1">
+              {attendance === 'accepted' ? 'Special Dietary Notes & Warm Wishes' : 'Warm Wishes for the Couple'}
+            </label>
+            <textarea
+              rows={2}
+              value={dietaryOrNotes}
+              onChange={(e) => setDietaryOrNotes(e.target.value)}
+              placeholder="e.g. Vegetarian, Halal, or prayers for the couple..."
+              className="w-full px-3.5 py-2 rounded-xl bg-white border border-[#D6B477]/70 text-sm text-[#0E1B2E] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D6B477]/50"
+            />
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-3 px-6 rounded-xl bg-[#0E1B2E] hover:bg-[#142338] text-white font-bold text-xs uppercase tracking-widest transition-all shadow-lg hover:shadow-xl cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+          >
+            {isSubmitting ? (
+              <span>Securing Your Reservation...</span>
+            ) : (
+              <>
+                <Send className="w-4 h-4 text-[#ECC880]" />
+                <span>
+                  {attendance === 'accepted'
+                    ? 'Submit RSVP for Protocol Approval'
+                    : 'Submit Response'}
+                </span>
+              </>
+            )}
+          </button>
+
+          {/* Security Protocol Footnote */}
+          <div className="pt-2 text-center">
+            <p className="text-[10px] text-gray-500 flex items-center justify-center gap-1">
+              <ShieldAlert className="w-3 h-3 text-[#D6B477]" />
+              <span>
+                Dress Code strictly Black-Tie. Unregistered attendees will not be granted venue entry.
+              </span>
+            </p>
+          </div>
+        </form>
+      </div>
+
+      {/* Guest Status Lookup Modal */}
+      <GuestStatusLookupModal
+        isOpen={showStatusLookup}
+        onClose={() => setShowStatusLookup(false)}
+      />
+    </>
   );
 };
